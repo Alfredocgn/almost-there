@@ -2,6 +2,7 @@
 
 import type React from "react";
 import { useState } from "react";
+import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import {
   Card,
@@ -23,6 +24,7 @@ const mockGameData = {
 };
 
 export default function TreasureHuntGame() {
+  const router = useRouter();
   const [isConnected, setIsConnected] = useState(false);
   const [address, setAddress] = useState("");
   const [isConnecting, setIsConnecting] = useState(false);
@@ -92,7 +94,7 @@ export default function TreasureHuntGame() {
     <div className="min-h-screen bg-gradient-to-br from-amber-50 via-orange-50 to-red-50">
       {!isConnected ? (
         <LandingCard
-          onPlay={connectWallet}
+          onPlay={() => router.push("/lobby")}
           onShowInstructions={() => console.log("show instructions")}
         />
       ) : gameState === "playing" ? (
