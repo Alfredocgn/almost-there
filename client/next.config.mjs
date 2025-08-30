@@ -1,5 +1,8 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
+  experimental: {
+    appDir: true,
+  },
   eslint: {
     ignoreDuringBuilds: true,
   },
@@ -8,6 +11,22 @@ const nextConfig = {
   },
   images: {
     unoptimized: true,
+  },
+  // Optimize for mini app deployment
+  output: 'standalone',
+  // Allow Base domains for API calls
+  async headers() {
+    return [
+      {
+        source: '/(.*)',
+        headers: [
+          {
+            key: 'X-Frame-Options',
+            value: 'SAMEORIGIN',
+          },
+        ],
+      },
+    ]
   },
 }
 

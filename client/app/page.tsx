@@ -6,67 +6,47 @@ import { useState, useEffect, useRef, useCallback } from "react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
-import {
-  Wallet,
-  Users,
-  MapPin,
-  Coins,
-  Timer,
-  Zap,
-  ZoomIn,
-  ZoomOut,
-  RotateCcw,
-  Eye,
-  ArrowLeft,
-  Flag,
-} from "lucide-react"
+import { Wallet, Users, Zap, ArrowLeft, Eye, MapPin } from "lucide-react"
 
-// Mock wallet connection hook
-function useWallet() {
-  const [isConnected, setIsConnected] = useState(false)
-  const [address, setAddress] = useState<string | null>(null)
-  const [isConnecting, setIsConnecting] = useState(false)
-
-  const connectWallet = async () => {
-    setIsConnecting(true)
-    // Simulate wallet connection
-    setTimeout(() => {
-      setIsConnected(true)
-      setAddress("0x1234...5678")
-      setIsConnecting(false)
-    }, 1500)
-  }
-
-  const disconnectWallet = () => {
-    setIsConnected(false)
-    setAddress(null)
-  }
-
-  return { isConnected, address, isConnecting, connectWallet, disconnectWallet }
+const mockGameData = {
+  playersNeeded: 6,
+  currentPlayers: 3,
+  playerTurns: 5,
+  prizePool: "0.5 ETH",
 }
 
 function TreasureMap({
   playerTurns,
   onTurnUsed,
-  onBuyTurns,
+
   onTurnsChanged,
+  selectedMainSquare,
+  setSelectedMainSquare,
+  cartFlags,
+  setCartFlags,
+  placedFlags,
+  setPlacedFlags,
+  submittedPointsCount,
+  setSubmittedPointsCount,
 }: {
   playerTurns: number
   onTurnUsed: () => void
-  onBuyTurns: () => void
+
   onTurnsChanged: (turns: number) => void
+  selectedMainSquare: { x: number; y: number } | null
+  setSelectedMainSquare: (square: { x: number; y: number } | null) => void
+  cartFlags: Set<string>
+  setCartFlags: (flags: Set<string>) => void
+  placedFlags: Set<string>
+  setPlacedFlags: (flags: Set<string>) => void
+  submittedPointsCount: number
+  setSubmittedPointsCount: (count: number | ((prev: number) => number)) => void
 }) {
   const canvasRef = useRef<HTMLCanvasElement>(null)
   const detailedMapRef = useRef<HTMLImageElement | null>(null)
   const simplifiedMapRef = useRef<HTMLImageElement | null>(null)
-  const animationFrameRef = useRef<number>()
-  const [zoomLevel, setZoomLevel] = useState(1)
+  const animationFrameRef = useRef<number | undefined>(undefined)
   const [mapPosition, setMapPosition] = useState({ x: 0, y: 0 })
-  const [selectedMainSquare, setSelectedMainSquare] = useState<{ x: number; y: number } | null>(null)
-  const [placedFlags, setPlacedFlags] = useState<Set<string>>(new Set()) // Submitted flags
-  const [cartFlags, setCartFlags] = useState<Set<string>>(new Set()) // Pending flags in cart
-  const [maxPointsPerGame] = useState(50) // Contract limit
-  const [submittedPointsCount, setSubmittedPointsCount] = useState(0) // Total submitted across all transactions
   const [playerSnapshots, setPlayerSnapshots] = useState<
     Array<{
       id: string
@@ -84,8 +64,6 @@ function TreasureMap({
   const [animationTime, setAnimationTime] = useState(0)
   const mainMapSize = 4 // Main map is always 4x4
   const detailMapSize = 4 // Detail view is also 4x4
-  const maxZoom = 3
-  const minZoom = 0.5
   const canvasWidth = 600
   const canvasHeight = 600
   const [isDragging, setIsDragging] = useState(false)
@@ -120,12 +98,12 @@ function TreasureMap({
     if (playerTurns < 1) return // Need at least 1 turn to purchase
 
     const viewType = selectedMainSquare ? "detailed" : "main"
-    const snapshot = {
+          const snapshot = {
       id: `snapshot-${Date.now()}`,
       timestamp: Date.now(),
-      playerPositions: generateMockPlayerPositions(viewType, selectedMainSquare || undefined),
+      playerPositions: generateMockPlayerPositions(viewType as "main" | "detailed", selectedMainSquare || undefined),
       cost: snapshotCost,
-      viewType,
+      viewType: viewType as "main" | "detailed",
       detailedSquare: selectedMainSquare || undefined,
     }
 
@@ -158,7 +136,6 @@ function TreasureMap({
     const centerX = canvasWidth / 2
     const centerY = canvasHeight / 2
     ctx.translate(centerX + mapPosition.x, centerY + mapPosition.y)
-    ctx.scale(zoomLevel, zoomLevel)
     ctx.translate(-centerX, -centerY)
 
     if (selectedMainSquare) {
@@ -288,7 +265,7 @@ function TreasureMap({
             snapshot.playerPositions.forEach((flagKey) => {
               if (flagKey.startsWith("flag-")) {
                 const parts = flagKey.split("-")
-                const [, mainX, mainY, detailX, detailY] = parts.map(Number)
+                const [, mainX, mainY, detailX, detailY] = parts.map(Number) as [string, number, number, number, number]
 
                 const flagX = (detailX / detailMapSize) * canvasWidth
                 const flagY = (detailY / detailMapSize) * canvasHeight
@@ -410,7 +387,7 @@ function TreasureMap({
         const squareHeight = canvasHeight / mainMapSize
 
         const pulseIntensity = 0.5 + 0.5 * Math.sin(animationTime * 0.005)
-        ctx.strokeStyle = `rgba(34, 197, 94, ${pulseIntensity})` // green with pulse
+                        ctx.strokeStyle = `rgba(34, 197, 94, ${pulseIntensity})` // green with pulse
         ctx.lineWidth = 4
         ctx.strokeRect(squareX + 2, squareY + 2, squareWidth - 4, squareHeight - 4)
 
@@ -438,7 +415,7 @@ function TreasureMap({
         const squareHeight = canvasHeight / mainMapSize
 
         const pulseIntensity = 0.5 + 0.5 * Math.sin(animationTime * 0.005)
-        ctx.strokeStyle = `rgba(245, 158, 11, ${pulseIntensity})` // amber with pulse
+                        ctx.strokeStyle = `rgba(245, 158, 11, ${pulseIntensity})` // amber with pulse
         ctx.lineWidth = 4
         ctx.strokeRect(squareX + 2, squareY + 2, squareWidth - 4, squareHeight - 4)
 
@@ -467,10 +444,11 @@ function TreasureMap({
         if (snapshot) {
           snapshot.playerPositions.forEach((flagKey) => {
             const parts = flagKey.split("-")
-            const [, mainX, mainY, detailX, detailY] = parts.map(Number)
+            const [, mainX, mainY, detailX, detailY] = parts.map(Number) as [string, number, number, number, number]
 
             if (selectedMainSquare) {
-              if (mainX === selectedMainSquare.x && mainY === selectedMainSquare.y) {
+              const currentSquare = selectedMainSquare as { x: number; y: number } | null
+            if (currentSquare && mainX === currentSquare.x && mainY === currentSquare.y) {
                 const flagX = (detailX / detailMapSize) * canvasWidth
                 const flagY = (detailY / detailMapSize) * canvasHeight
 
@@ -517,7 +495,7 @@ function TreasureMap({
 
     ctx.restore()
   }, [
-    zoomLevel,
+
     mapPosition,
     selectedMainSquare,
     placedFlags,
@@ -544,21 +522,21 @@ function TreasureMap({
       const centerX = canvasWidth / 2
       const centerY = canvasHeight / 2
 
-      const transformedX = (mouseX - centerX - mapPosition.x) / zoomLevel + centerX
-      const transformedY = (mouseY - centerY - mapPosition.y) / zoomLevel + centerY
+      const transformedX = mouseX
+      const transformedY = mouseY
 
       if (selectedMainSquare) {
-        const currentAvailablePoints = maxPointsPerGame - submittedPointsCount - cartFlags.size
+        const currentAvailablePoints = 50 - submittedPointsCount - cartFlags.size
         if (currentAvailablePoints <= 0) {
           alert("No available points left!")
           return
         }
 
-        const detailX = Math.floor((transformedX / canvasWidth) * detailMapSize)
-        const detailY = Math.floor((transformedY / canvasHeight) * detailMapSize)
+        const detailX = Math.floor((transformedX / (canvasWidth / detailMapSize)))
+        const detailY = Math.floor((transformedY / (canvasHeight / detailMapSize)))
 
         if (detailX >= 0 && detailX < detailMapSize && detailY >= 0 && detailY < detailMapSize) {
-          const flagKey = getFlagKey(selectedMainSquare.x, selectedMainSquare.y, detailX, detailY)
+          const flagKey = getFlagKey(Number(selectedMainSquare.x), Number(selectedMainSquare.y), Number(detailX), Number(detailY))
 
           if (cartFlags.has(flagKey)) {
             removeFromCart(flagKey)
@@ -569,8 +547,8 @@ function TreasureMap({
             return
           }
 
-          if (submittedPointsCount + cartFlags.size >= maxPointsPerGame) {
-            alert(`Maximum ${maxPointsPerGame} points per game reached!`)
+          if (submittedPointsCount + cartFlags.size >= 50) {
+            alert("Maximum 50 points per game reached!")
             return
           }
 
@@ -579,8 +557,8 @@ function TreasureMap({
           setCartFlags(newCartFlags)
         }
       } else {
-        const mainX = Math.floor((transformedX / canvasWidth) * mainMapSize)
-        const mainY = Math.floor((transformedY / canvasHeight) * mainMapSize)
+        const mainX = Math.floor((transformedX / (canvasWidth / mainMapSize)))
+        const mainY = Math.floor((transformedY / (canvasHeight / mainMapSize)))
 
         if (mainX >= 0 && mainX < mainMapSize && mainY >= 0 && mainY < mainMapSize) {
           setSelectedMainSquare({ x: mainX, y: mainY })
@@ -590,7 +568,7 @@ function TreasureMap({
     [
       playerTurns,
       isDragging,
-      zoomLevel,
+
       mapPosition,
       selectedMainSquare,
       placedFlags,
@@ -599,7 +577,6 @@ function TreasureMap({
       detailMapSize,
       onTurnUsed,
       submittedPointsCount,
-      maxPointsPerGame,
     ],
   )
 
@@ -631,7 +608,6 @@ function TreasureMap({
 
   useEffect(() => {
     const loadImages = () => {
-      // Load detailed Buenos Aires map
       const detailedImg = new Image()
       detailedImg.onload = () => {
         detailedMapRef.current = detailedImg
@@ -639,7 +615,6 @@ function TreasureMap({
       }
       detailedImg.src = "/detailed-buenos-aires-city-map-with-all-streets-av.png"
 
-      // Load simplified Buenos Aires map
       const simplifiedImg = new Image()
       simplifiedImg.onload = () => {
         simplifiedMapRef.current = simplifiedImg
@@ -655,17 +630,7 @@ function TreasureMap({
     drawCanvas()
   }, [drawCanvas])
 
-  const handleZoomIn = () => {
-    if (zoomLevel < maxZoom) {
-      setZoomLevel((prev) => Math.min(prev + 0.5, maxZoom))
-    }
-  }
 
-  const handleZoomOut = () => {
-    if (zoomLevel > minZoom) {
-      setZoomLevel((prev) => Math.max(prev - 0.5, minZoom))
-    }
-  }
 
   const formatTime = (seconds: number) => {
     const mins = Math.floor(seconds / 60)
@@ -676,13 +641,115 @@ function TreasureMap({
   const totalFlags = placedFlags.size
   const cartSize = cartFlags.size
   const cartTotal = cartSize * pointCost
-  const availablePoints = maxPointsPerGame - submittedPointsCount - cartFlags.size
+  const availablePoints = 50 - submittedPointsCount - cartFlags.size
   const totalPossibleFlags = mainMapSize * mainMapSize * detailMapSize * detailMapSize
 
   const removeFromCart = (flagKey: string) => {
     const newCartFlags = new Set(cartFlags)
     newCartFlags.delete(flagKey)
     setCartFlags(newCartFlags)
+  }
+
+  return (
+    <div className="h-full flex flex-col">
+      {/* Map Canvas - Full Height */}
+      <div className="flex-1 relative">
+        <canvas
+          ref={canvasRef}
+          width={canvasWidth}
+          height={canvasHeight}
+          onClick={handleCanvasClick}
+          onMouseDown={handleMouseDown}
+          onMouseMove={handleMouseMove}
+          onMouseUp={handleMouseUp}
+          onMouseLeave={handleMouseUp}
+          onTouchStart={(e) => {
+            const touch = e.touches[0]
+            if (touch) {
+              handleMouseDown({ clientX: touch.clientX, clientY: touch.clientY } as React.MouseEvent<HTMLCanvasElement>)
+            }
+          }}
+          onTouchMove={(e) => {
+            const touch = e.touches[0]
+            if (touch) {
+              handleMouseMove({ clientX: touch.clientX, clientY: touch.clientY } as React.MouseEvent<HTMLCanvasElement>)
+            }
+          }}
+          onTouchEnd={() => handleMouseUp()}
+          className={`w-full h-full ${
+            selectedMainSquare ? (availablePoints > 0 ? "cursor-crosshair" : "cursor-not-allowed") : "cursor-pointer"
+          } ${isDragging ? "cursor-grabbing" : ""}`}
+          style={{
+            objectFit: "contain",
+          }}
+        />
+
+
+
+
+
+        {/* Intel Status - Floating */}
+        {activeSnapshot && (
+          <div className="absolute top-3 right-3">
+            <Badge variant="default" className="bg-cyan-500 text-xs">
+              <Eye className="w-3 h-3 mr-1" />
+              Intel (
+              {Math.ceil(
+                (30000 - (Date.now() - playerSnapshots.find((s) => s.id === activeSnapshot)!.timestamp)) / 1000,
+              )}
+              s)
+            </Badge>
+          </div>
+        )}
+      </div>
+    </div>
+  )
+}
+
+export default function TreasureHuntGame() {
+  const [isConnected, setIsConnected] = useState(false)
+  const [address, setAddress] = useState("")
+  const [isConnecting, setIsConnecting] = useState(false)
+  const [gameState, setGameState] = useState<"lobby" | "playing">("lobby")
+  const [playerTurns, setPlayerTurns] = useState(mockGameData.playerTurns)
+  const [selectedMainSquare, setSelectedMainSquare] = useState<{ x: number; y: number } | null>(null)
+  const [cartFlags, setCartFlags] = useState<Set<string>>(new Set()) // Pending flags in cart
+  const [placedFlags, setPlacedFlags] = useState<Set<string>>(new Set()) // Submitted flags
+  const [submittedPointsCount, setSubmittedPointsCount] = useState(0) // Total submitted across all transactions
+  const maxPointsPerGame = 50
+  const pointCost = 0.001
+
+
+
+  const handleTurnUsed = () => {
+    setPlayerTurns((prev) => Math.max(0, prev - 1))
+  }
+
+  const handleTurnsChanged = (newTurns: number) => {
+    setPlayerTurns(newTurns)
+  }
+
+  const handleJoinGame = () => {
+    setGameState("playing")
+  }
+
+  const connectWallet = async () => {
+    setIsConnecting(true)
+    // Simulate connection delay
+    setTimeout(() => {
+      setIsConnected(true)
+      setAddress("0x1234...5678")
+      setIsConnecting(false)
+    }, 1000)
+  }
+
+  const disconnectWallet = () => {
+    setIsConnected(false)
+    setAddress("")
+  }
+
+  const clearCart = () => {
+    setCartFlags(new Set())
   }
 
   const submitCart = async () => {
@@ -704,544 +771,176 @@ function TreasureMap({
     }
   }
 
-  const clearCart = () => {
-    setCartFlags(new Set())
-  }
+  const availablePoints = maxPointsPerGame - submittedPointsCount - cartFlags.size
+  const cartSize = cartFlags.size
+  const totalFlags = placedFlags.size
+  const cartTotal = cartSize * pointCost
 
   return (
-    <div className="flex gap-6">
-      <div className="w-80 space-y-4">
-        <Card>
-          <CardHeader className="pb-3">
-            <CardTitle className="text-lg flex items-center gap-2">
-              <div className="w-6 h-6 bg-amber-500 rounded-full flex items-center justify-center text-white text-xs">
-                🛒
-              </div>
-              Shopping Cart
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="space-y-3">
-              <div className="flex justify-between items-center">
-                <span className="text-sm text-muted-foreground">Items in cart</span>
-                <span className="font-mono text-lg">{cartSize}</span>
-              </div>
-              <div className="flex justify-between items-center">
-                <span className="text-sm text-muted-foreground">Total cost</span>
-                <span className="font-mono text-lg">{cartTotal.toFixed(3)} ETH</span>
-              </div>
-              <div className="flex gap-2">
-                <Button onClick={submitCart} disabled={cartSize === 0} className="flex-1" size="sm">
-                  Submit to Contract
-                </Button>
-                <Button onClick={clearCart} disabled={cartSize === 0} variant="outline" size="sm">
-                  Clear
-                </Button>
-              </div>
-            </div>
-
-            <div className="pt-2 border-t">
-              <div className="space-y-2 text-sm">
-                <div className="flex justify-between">
-                  <span className="text-muted-foreground">Available points</span>
-                  <span className="font-mono">
-                    {availablePoints}/{maxPointsPerGame}
-                  </span>
-                </div>
-                <div className="flex justify-between">
-                  <span className="text-muted-foreground">In cart</span>
-                  <span className="font-mono text-amber-600">{cartSize}</span>
-                </div>
-                <div className="flex justify-between">
-                  <span className="text-muted-foreground">Submitted points</span>
-                  <span className="font-mono text-green-600">{submittedPointsCount}</span>
-                </div>
-              </div>
-              <div className="w-full bg-muted rounded-full h-2 mt-2">
-                <div
-                  className="bg-green-500 h-2 rounded-full transition-all duration-300"
-                  style={{ width: `${(submittedPointsCount / maxPointsPerGame) * 100}%` }}
-                />
-                <div
-                  className="bg-amber-500 h-2 rounded-full transition-all duration-300 -mt-2"
-                  style={{
-                    width: `${((submittedPointsCount + cartSize) / maxPointsPerGame) * 100}%`,
-                    marginLeft: `${(submittedPointsCount / maxPointsPerGame) * 100}%`,
-                  }}
-                />
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-
-        {cartSize > 0 && (
-          <Card>
-            <CardHeader className="pb-3">
-              <CardTitle className="flex items-center gap-2">
-                <MapPin className="w-5 h-5" />
-                Cart Items
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-2 max-h-60 overflow-y-auto">
-                {Array.from(cartFlags).map((flagKey) => {
-                  const parts = flagKey.split("-")
-                  const [, mainX, mainY, detailX, detailY] = parts.map(Number)
-                  return (
-                    <div key={flagKey} className="flex items-center justify-between p-2 bg-muted/50 rounded text-xs">
-                      <span className="font-mono">
-                        Area ({mainX + 1},{mainY + 1}) - Point ({detailX + 1},{detailY + 1})
-                      </span>
-                      <Button
-                        onClick={() => removeFromCart(flagKey)}
-                        variant="ghost"
-                        size="sm"
-                        className="h-6 w-6 p-0 text-red-500 hover:text-red-700"
-                      >
-                        ×
-                      </Button>
-                    </div>
-                  )
-                })}
-              </div>
-            </CardContent>
-          </Card>
-        )}
-
-        <Card>
-          <CardHeader className="pb-3">
-            <CardTitle className="flex items-center gap-2">
-              <Eye className="w-5 h-5" />
-              Player Intel
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="space-y-3">
-              <p className="text-xs text-muted-foreground">
-                {selectedMainSquare
-                  ? `Reveal player positions in this area. Snapshot lasts 30 seconds.`
-                  : `Reveal which areas have players. Snapshot lasts 30 seconds.`}
-              </p>
-
-              {activeSnapshot ? (
-                <div className="space-y-2">
-                  <Badge variant="default" className="w-full justify-center bg-cyan-500">
-                    <Eye className="w-4 h-4 mr-1" />
-                    {selectedMainSquare ? "Area Intel Active" : "Map Intel Active"}
-                  </Badge>
-                  <p className="text-xs text-center text-muted-foreground">
-                    Showing {selectedMainSquare ? "detailed positions" : "occupied areas"} from{" "}
-                    {new Date(
-                      playerSnapshots.find((s) => s.id === activeSnapshot)?.timestamp || 0,
-                    ).toLocaleTimeString()}
-                  </p>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    className="w-full bg-transparent"
-                    onClick={() => setActiveSnapshot(null)}
-                  >
-                    Hide Snapshot
-                  </Button>
-                </div>
-              ) : (
-                <Button
-                  onClick={purchaseSnapshot}
-                  disabled={playerTurns < 1}
-                  className="w-full bg-cyan-600 hover:bg-cyan-700"
-                >
-                  <Eye className="w-4 h-4 mr-2" />
-                  {selectedMainSquare
-                    ? `Reveal Area Players (${snapshotCost} ETH)`
-                    : `Reveal Occupied Areas (${snapshotCost} ETH)`}
-                </Button>
-              )}
-            </div>
-          </CardContent>
-        </Card>
-      </div>
-
-      <div className="flex-1 space-y-4">
-        <div className="flex items-center justify-between bg-card rounded-lg p-4">
-          <div className="flex items-center gap-4">
-            <Badge variant="outline" className="font-mono">
-              <Timer className="w-4 h-4 mr-1" />
-              {formatTime(300)} {/* Placeholder for game time left */}
-            </Badge>
-            <Badge variant="secondary">
-              <Zap className="w-4 h-4 mr-1" />
-              {playerTurns} turns left
-            </Badge>
-            <Badge variant="outline">
-              <Flag className="w-4 h-4 mr-1" />
-              {totalFlags} submitted | {cartSize} in cart
-            </Badge>
-            <Badge variant={selectedMainSquare ? "default" : "secondary"}>
-              <Eye className="w-4 h-4 mr-1" />
-              {selectedMainSquare
-                ? `Detail View (${selectedMainSquare.x + 1},${selectedMainSquare.y + 1})`
-                : "Main View (4x4)"}
-            </Badge>
-            {activeSnapshot && (
-              <Badge variant="default" className="bg-cyan-500">
-                <Eye className="w-4 h-4 mr-1" />
-                Intel Active
-              </Badge>
-            )}
-          </div>
-
-          <div className="flex items-center gap-2">
-            {selectedMainSquare && (
-              <Button variant="outline" size="sm" onClick={() => setSelectedMainSquare(null)}>
-                <ArrowLeft className="w-4 h-4 mr-1" />
-                Back to Main
-              </Button>
-            )}
-            <Button variant="outline" size="sm" onClick={handleZoomOut} disabled={zoomLevel <= minZoom}>
-              <ZoomOut className="w-4 h-4" />
-            </Button>
-            <span className="text-sm text-muted-foreground min-w-[60px] text-center">
-              {Math.round(zoomLevel * 100)}%
-            </span>
-            <Button variant="outline" size="sm" onClick={handleZoomIn} disabled={zoomLevel >= maxZoom}>
-              <ZoomIn className="w-4 h-4" />
-            </Button>
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => {
-                setZoomLevel(1)
-                setMapPosition({ x: 0, y: 0 })
-              }}
-            >
-              <RotateCcw className="w-4 h-4" />
-            </Button>
-          </div>
-        </div>
-
-        <div className="relative bg-card rounded-lg p-4 overflow-hidden">
-          <canvas
-            ref={canvasRef}
-            width={canvasWidth}
-            height={canvasHeight}
-            onClick={handleCanvasClick}
-            onMouseDown={handleMouseDown}
-            onMouseMove={handleMouseMove}
-            onMouseUp={handleMouseUp}
-            onMouseLeave={handleMouseUp}
-            className={`border border-border/50 rounded-lg mx-auto block ${
-              selectedMainSquare ? (playerTurns > 0 ? "cursor-crosshair" : "cursor-not-allowed") : "cursor-pointer"
-            } ${isDragging ? "cursor-grabbing" : ""}`}
-            style={{
-              maxWidth: "100%",
-              height: "auto",
-            }}
-          />
-
-          <div className="absolute top-4 right-4 text-xs text-muted-foreground bg-muted/80 rounded px-2 py-1">
-            Buenos Aires Map | {selectedMainSquare ? "Add to Cart" : "Select Area"} | Zoom:{" "}
-            {Math.round(zoomLevel * 100)}%
-          </div>
-        </div>
-
-        <Card>
-          <CardHeader className="pb-3">
-            <CardTitle className="text-sm">
-              {selectedMainSquare
-                ? `Exploring Area (${selectedMainSquare.x + 1},${selectedMainSquare.y + 1})`
-                : "Map Overview"}
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="space-y-3">
-              <div className="flex justify-between items-center">
-                <span className="text-sm text-muted-foreground">Total Flags Placed</span>
-                <span className="font-mono text-lg">{totalFlags}</span>
-              </div>
-              <div className="w-full bg-muted rounded-full h-2">
-                <div
-                  className="bg-accent h-2 rounded-full transition-all duration-300"
-                  style={{ width: `${Math.min((totalFlags / 20) * 100, 100)}%` }}
-                />
-              </div>
-              <p className="text-xs text-muted-foreground">
-                {selectedMainSquare
-                  ? "Click on the 4x4 grid to place flags with your turns. Each flag marks a potential treasure location."
-                  : "Click on any of the 16 main squares to explore that area in detail. Each square contains a 4x4 grid for flag placement."}
-              </p>
-            </div>
-          </CardContent>
-        </Card>
-      </div>
-    </div>
-  )
-}
-
-const mockGameData = {
-  playersNeeded: 6,
-  currentPlayers: 3,
-  gameStartsIn: 120, // seconds
-  playerTurns: 5,
-  mapSize: "50x50",
-  prizePool: "0.5 ETH",
-}
-
-export default function TreasureHuntGame() {
-  const { isConnected, address, isConnecting, connectWallet, disconnectWallet } = useWallet()
-  const [gameTimer, setGameTimer] = useState(mockGameData.gameStartsIn)
-  const [gameState, setGameState] = useState<"lobby" | "playing">("lobby")
-  const [playerTurns, setPlayerTurns] = useState(mockGameData.playerTurns)
-
-  useEffect(() => {
-    if (gameTimer > 0 && gameState === "lobby") {
-      const timer = setInterval(() => {
-        setGameTimer((prev) => prev - 1)
-      }, 1000)
-      return () => clearInterval(timer)
-    } else if (gameTimer === 0 && gameState === "lobby") {
-      setGameState("playing")
-    }
-  }, [gameTimer, gameState])
-
-  const formatTime = (seconds: number) => {
-    const mins = Math.floor(seconds / 60)
-    const secs = seconds % 60
-    return `${mins}:${secs.toString().padStart(2, "0")}`
-  }
-
-  const handleTurnUsed = () => {
-    setPlayerTurns((prev) => Math.max(0, prev - 1))
-  }
-
-  const handleBuyTurns = () => {
-    setPlayerTurns((prev) => prev + 5)
-  }
-
-  const handleTurnsChanged = (newTurns: number) => {
-    setPlayerTurns(newTurns)
-  }
-
-  const handleJoinGame = () => {
-    setGameState("playing")
-    setGameTimer(0)
-  }
-
-  return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-50 dark:from-slate-900 dark:via-slate-800 dark:to-slate-900">
-      <header className="border-b bg-card/50 backdrop-blur-sm">
-        <div className="container mx-auto px-4 py-4 flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 bg-accent rounded-lg flex items-center justify-center">
-              <MapPin className="w-6 h-6 text-accent-foreground" />
-            </div>
-            <div>
-              <h1 className="text-2xl font-bold text-foreground">Treasure Hunt</h1>
-              <p className="text-sm text-muted-foreground">Base Miniapp</p>
-            </div>
-          </div>
-
-          <div className="flex items-center gap-4">
-            {isConnected && (
-              <Badge variant="secondary" className="px-3 py-1">
-                <Wallet className="w-4 h-4 mr-2" />
-                {address}
-              </Badge>
-            )}
-            <Button
-              onClick={isConnected ? disconnectWallet : connectWallet}
-              disabled={isConnecting}
-              variant={isConnected ? "outline" : "default"}
-              className="min-w-[140px]"
-            >
-              {isConnecting ? (
-                <>
-                  <div className="w-4 h-4 border-2 border-current border-t-transparent rounded-full animate-spin mr-2" />
-                  Connecting...
-                </>
-              ) : isConnected ? (
-                <>
-                  <Wallet className="w-4 h-4 mr-2" />
-                  Disconnect
-                </>
-              ) : (
-                <>
-                  <Wallet className="w-4 h-4 mr-2" />
-                  Connect Wallet
-                </>
-              )}
-            </Button>
-          </div>
-        </div>
-      </header>
-
-      <main className="container mx-auto px-4 py-8">
-        {!isConnected ? (
-          <div className="max-w-md mx-auto">
+    <div className="min-h-screen bg-gradient-to-br from-amber-50 via-orange-50 to-red-50">
+      {!isConnected ? (
+        <div className="px-4 py-8">
+          <div className="max-w-sm mx-auto">
             <Card className="text-center">
-              <CardHeader>
+              <CardHeader className="pb-4">
                 <div className="w-16 h-16 bg-primary/10 rounded-full flex items-center justify-center mx-auto mb-4">
                   <Wallet className="w-8 h-8 text-primary" />
                 </div>
-                <CardTitle className="text-2xl">Connect Your Wallet</CardTitle>
-                <CardDescription>
-                  Connect your Base or MetaMask wallet to join the treasure hunt adventure
+                <CardTitle className="text-xl">Connect Your Wallet</CardTitle>
+                <CardDescription className="text-sm">
+                  Connect your Coinbase Wallet to join the treasure hunt on Base
                 </CardDescription>
               </CardHeader>
               <CardContent className="space-y-4">
                 <Button onClick={connectWallet} disabled={isConnecting} className="w-full" size="lg">
-                  {isConnecting ? (
-                    <>
-                      <div className="w-5 h-5 border-2 border-current border-t-transparent rounded-full animate-spin mr-2" />
-                      Connecting...
-                    </>
-                  ) : (
-                    <>
-                      <Wallet className="w-5 h-5 mr-2" />
-                      Connect Wallet
-                    </>
-                  )}
+                  <Wallet className="w-5 h-5 mr-2" />
+                  {isConnecting ? "Connecting..." : "Connect Wallet"}
                 </Button>
-                <p className="text-sm text-muted-foreground">
-                  Supports MetaMask, Coinbase Wallet, and other Base-compatible wallets
-                </p>
+                <p className="text-xs text-muted-foreground">Base mini app for Coinbase Wallet</p>
               </CardContent>
             </Card>
           </div>
-        ) : gameState === "playing" ? (
-          <div className="max-w-6xl mx-auto">
-            <div className="text-center mb-6">
-              <h2 className="text-3xl font-bold text-foreground mb-2">The Hunt Begins!</h2>
-              <p className="text-muted-foreground">Click on the map to place your marks and find the hidden treasure</p>
-            </div>
+        </div>
+      ) : gameState === "playing" ? (
+        <div className="flex flex-col h-screen max-w-sm mx-auto bg-white">
+          {/* Compact Mobile Header */}
+          <div className="bg-white border-b px-3 py-2 flex-shrink-0">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <div className="w-6 h-6 bg-gradient-to-br from-amber-600 to-orange-600 rounded-md flex items-center justify-center">
+                  <MapPin className="w-3 h-3 text-white" />
+                </div>
+                <h1 className="text-sm font-bold text-amber-900">Buenos Aires Hunt</h1>
+              </div>
+              <div className="flex items-center gap-2">
+                {selectedMainSquare && (
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => setSelectedMainSquare(null)}
+                    className="h-6 px-2 text-xs bg-amber-100 hover:bg-amber-200"
+                  >
+                    <ArrowLeft className="w-3 h-3 mr-1" />
+                    Back
+                  </Button>
+                )}
 
+              </div>
+            </div>
+          </div>
+
+          {/* Full Screen Map Area */}
+          <div className="flex-1 relative bg-gray-50">
             <TreasureMap
               playerTurns={playerTurns}
               onTurnUsed={handleTurnUsed}
-              onBuyTurns={handleBuyTurns}
+
               onTurnsChanged={handleTurnsChanged}
+              selectedMainSquare={selectedMainSquare}
+              setSelectedMainSquare={setSelectedMainSquare}
+              cartFlags={cartFlags}
+              setCartFlags={setCartFlags}
+              placedFlags={placedFlags}
+              setPlacedFlags={setPlacedFlags}
+              submittedPointsCount={submittedPointsCount}
+              setSubmittedPointsCount={setSubmittedPointsCount}
             />
           </div>
-        ) : (
-          <div className="max-w-4xl mx-auto space-y-6">
-            <div className="text-center">
-              <h2 className="text-3xl font-bold text-foreground mb-2">Welcome to the Hunt!</h2>
-              <p className="text-muted-foreground">Join other treasure hunters in an epic multiplayer adventure</p>
+
+          {/* Compact Bottom Actions */}
+          <div className="bg-white border-t px-3 py-2 flex-shrink-0">
+            <div className="flex items-center justify-between mb-2">
+              <div className="flex items-center gap-3 text-xs">
+                <span className="text-amber-600 font-medium">{cartSize} in cart</span>
+                <span className="text-green-600 font-medium">{totalFlags} submitted</span>
+                <span className="text-gray-500">
+                  {availablePoints}/{maxPointsPerGame} left
+                </span>
+              </div>
+              <span className="font-mono text-sm font-bold">{cartTotal.toFixed(3)} ETH</span>
             </div>
 
-            <div className="grid md:grid-cols-2 gap-6">
-              <Card>
-                <CardHeader>
-                  <CardTitle className="flex items-center gap-2">
-                    <Users className="w-5 h-5" />
-                    Game Lobby
-                  </CardTitle>
-                </CardHeader>
-                <CardContent className="space-y-4">
-                  <div className="flex items-center justify-between">
-                    <span className="text-sm text-muted-foreground">Players</span>
-                    <Badge variant="secondary">
-                      {mockGameData.currentPlayers}/{mockGameData.playersNeeded}
-                    </Badge>
-                  </div>
-
-                  <div className="flex items-center justify-between">
-                    <span className="text-sm text-muted-foreground">Game starts in</span>
-                    <Badge variant="outline" className="font-mono">
-                      <Timer className="w-4 h-4 mr-1" />
-                      {formatTime(gameTimer)}
-                    </Badge>
-                  </div>
-
-                  <div className="flex items-center justify-between">
-                    <span className="text-sm text-muted-foreground">Prize Pool</span>
-                    <Badge variant="secondary" className="text-accent">
-                      <Coins className="w-4 h-4 mr-1" />
-                      {mockGameData.prizePool}
-                    </Badge>
-                  </div>
-
-                  <Button
-                    className="w-full"
-                    size="lg"
-                    onClick={handleJoinGame}
-                    disabled={mockGameData.currentPlayers >= mockGameData.playersNeeded}
-                  >
-                    {mockGameData.currentPlayers >= mockGameData.playersNeeded ? "Game Full" : "Join Game"}
-                  </Button>
-                </CardContent>
-              </Card>
-
-              <Card>
-                <CardHeader>
-                  <CardTitle className="flex items-center gap-2">
-                    <MapPin className="w-5 h-5" />
-                    Game Details
-                  </CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <div className="space-y-4">
-                    <div className="flex items-center justify-between">
-                      <span className="text-sm text-muted-foreground">Map Size</span>
-                      <Badge variant="outline">{mockGameData.mapSize}</Badge>
-                    </div>
-
-                    <div className="flex items-center justify-between">
-                      <span className="text-sm text-muted-foreground">Your Turns</span>
-                      <Badge variant="secondary">
-                        <Zap className="w-4 h-4 mr-1" />
-                        {mockGameData.playerTurns}
-                      </Badge>
-                    </div>
-
-                    <div className="space-y-2">
-                      <p className="text-sm text-muted-foreground">How to Play:</p>
-                      <ul className="text-xs text-muted-foreground space-y-1 list-disc list-inside">
-                        <li>Use turns to place X marks on the map</li>
-                        <li>Zoom in/out to explore different areas</li>
-                        <li>Buy more turns with your wallet</li>
-                        <li>First to find the treasure wins!</li>
-                      </ul>
-                    </div>
-
-                    <Button variant="outline" className="w-full bg-transparent">
-                      <Coins className="w-4 h-4 mr-2" />
-                      Buy More Turns
-                    </Button>
-                  </div>
-                </CardContent>
-              </Card>
+            <div className="flex gap-2">
+              <Button onClick={submitCart} disabled={cartSize === 0} size="sm" className="flex-1 h-8">
+                Submit ({cartSize})
+              </Button>
+              <Button
+                onClick={clearCart}
+                disabled={cartFlags.size === 0}
+                variant="outline"
+                size="sm"
+                className="h-8 px-3 bg-transparent"
+              >
+                Clear
+              </Button>
+              <Button
+                onClick={() => {}}
+                disabled={availablePoints === 0}
+                variant="outline"
+                size="sm"
+                className="h-8 px-3"
+              >
+                <Eye className="w-3 h-3" />
+              </Button>
             </div>
+          </div>
+        </div>
+      ) : (
+        <div className="px-4 py-6">
+          <div className="text-center mb-6">
+            <div className="w-16 h-16 bg-gradient-to-br from-amber-600 to-orange-600 rounded-xl flex items-center justify-center mx-auto mb-4">
+              <MapPin className="w-8 h-8 text-white" />
+            </div>
+            <h2 className="text-2xl font-bold text-amber-900 mb-2">Colegiales Treasure Hunt</h2>
+            <p className="text-amber-700 text-sm">Join the multiplayer adventure</p>
+          </div>
 
+          <div className="space-y-4 max-w-sm mx-auto">
             <Card>
-              <CardHeader>
-                <CardTitle>Connected Players</CardTitle>
+              <CardHeader className="pb-3">
+                <CardTitle className="flex items-center gap-2 text-lg">
+                  <Users className="w-5 h-5" />
+                  Game Lobby
+                </CardTitle>
               </CardHeader>
-              <CardContent>
-                <div className="flex gap-4">
-                  {Array.from({ length: mockGameData.currentPlayers }).map((_, i) => (
-                    <div key={i} className="flex items-center gap-2">
-                      <div className="w-8 h-8 bg-primary/20 rounded-full flex items-center justify-center">
-                        <span className="text-xs font-medium">P{i + 1}</span>
-                      </div>
-                      <span className="text-sm text-muted-foreground">
-                        0x{Math.random().toString(16).substr(2, 4)}...
-                      </span>
-                    </div>
-                  ))}
-                  {Array.from({ length: mockGameData.playersNeeded - mockGameData.currentPlayers }).map((_, i) => (
-                    <div key={`empty-${i}`} className="flex items-center gap-2 opacity-50">
-                      <div className="w-8 h-8 border-2 border-dashed border-muted rounded-full flex items-center justify-center">
-                        <span className="text-xs">?</span>
-                      </div>
-                      <span className="text-sm text-muted-foreground">Waiting...</span>
-                    </div>
-                  ))}
+              <CardContent className="space-y-4">
+                <div className="flex items-center justify-between">
+                  <span className="text-sm text-muted-foreground">Players</span>
+                  <Badge variant="secondary">
+                    {mockGameData.currentPlayers}/{mockGameData.playersNeeded}
+                  </Badge>
                 </div>
+
+                <div className="flex items-center justify-between">
+                  <span className="text-sm text-muted-foreground">Starts in</span>
+                  <Badge variant="outline" className="font-mono">
+                    {mockGameData.currentPlayers}/{mockGameData.playersNeeded} Players
+                  </Badge>
+                </div>
+
+                <div className="flex items-center justify-between">
+                  <span className="text-sm text-muted-foreground">Prize Pool</span>
+                  <Badge variant="secondary" className="text-accent">
+                    <Zap className="w-4 h-4 mr-1" />
+                    {mockGameData.prizePool}
+                  </Badge>
+                </div>
+
+                <Button
+                  className="w-full"
+                  size="lg"
+                  onClick={handleJoinGame}
+                  disabled={mockGameData.currentPlayers >= mockGameData.playersNeeded}
+                >
+                  {mockGameData.currentPlayers >= mockGameData.playersNeeded ? "Game Full" : "Join Game"}
+                </Button>
               </CardContent>
             </Card>
+
+
           </div>
-        )}
-      </main>
+        </div>
+      )}
     </div>
   )
 }
