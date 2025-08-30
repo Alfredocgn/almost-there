@@ -1,113 +1,106 @@
-"use client"
+"use client";
 
-import type React from "react"
-import { useState } from "react"
-import { Button } from "@/components/ui/button"
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
-import { Badge } from "@/components/ui/badge"
-import { Wallet, Users, Zap, ArrowLeft, Eye, MapPin } from "lucide-react"
-import { TreasureMap } from "@/components/treasure-map"
+import type React from "react";
+import { useState } from "react";
+import { Button } from "@/components/ui/button";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import { Wallet, Users, Zap, ArrowLeft, Eye, MapPin } from "lucide-react";
+import { TreasureMap } from "@/components/treasure-map";
+import { LandingCard } from "@/components/ui/landing-card";
 
 const mockGameData = {
   playersNeeded: 6,
   currentPlayers: 3,
   playerTurns: 5,
   prizePool: "0.5 ETH",
-}
+};
 
 export default function TreasureHuntGame() {
-  const [isConnected, setIsConnected] = useState(false)
-  const [address, setAddress] = useState("")
-  const [isConnecting, setIsConnecting] = useState(false)
-  const [gameState, setGameState] = useState<"lobby" | "playing">("lobby")
-  const [playerTurns, setPlayerTurns] = useState(mockGameData.playerTurns)
-  const [selectedMainSquare, setSelectedMainSquare] = useState<{ x: number; y: number } | null>(null)
-  const [cartFlags, setCartFlags] = useState<Set<string>>(new Set()) // Pending flags in cart
-  const [placedFlags, setPlacedFlags] = useState<Set<string>>(new Set()) // Submitted flags
-  const [submittedPointsCount, setSubmittedPointsCount] = useState(0) // Total submitted across all transactions
-  const maxPointsPerGame = 50
-  const pointCost = 0.001 // ETH per point
+  const [isConnected, setIsConnected] = useState(false);
+  const [address, setAddress] = useState("");
+  const [isConnecting, setIsConnecting] = useState(false);
+  const [gameState, setGameState] = useState<"lobby" | "playing">("lobby");
+  const [playerTurns, setPlayerTurns] = useState(mockGameData.playerTurns);
+  const [selectedMainSquare, setSelectedMainSquare] = useState<{
+    x: number;
+    y: number;
+  } | null>(null);
+  const [cartFlags, setCartFlags] = useState<Set<string>>(new Set()); // Pending flags in cart
+  const [placedFlags, setPlacedFlags] = useState<Set<string>>(new Set()); // Submitted flags
+  const [submittedPointsCount, setSubmittedPointsCount] = useState(0); // Total submitted across all transactions
+  const maxPointsPerGame = 50;
+  const pointCost = 0.001; // ETH per point
 
   const handleTurnUsed = () => {
-    setPlayerTurns((prev) => Math.max(0, prev - 1))
-  }
+    setPlayerTurns((prev) => Math.max(0, prev - 1));
+  };
 
   const handleTurnsChanged = (newTurns: number) => {
-    setPlayerTurns(newTurns)
-  }
+    setPlayerTurns(newTurns);
+  };
 
   const handleJoinGame = () => {
-    setGameState("playing")
-  }
+    setGameState("playing");
+  };
 
   const connectWallet = async () => {
-    setIsConnecting(true)
+    setIsConnecting(true);
     // Simulate connection delay
     setTimeout(() => {
-      setIsConnected(true)
-      setAddress("0x1234...5678")
-      setIsConnecting(false)
-    }, 1000)
-  }
+      setIsConnected(true);
+      setAddress("0x1234...5678");
+      setIsConnecting(false);
+    }, 1000);
+  };
 
   const disconnectWallet = () => {
-    setIsConnected(false)
-    setAddress("")
-  }
+    setIsConnected(false);
+    setAddress("");
+  };
 
   const clearCart = () => {
-    setCartFlags(new Set())
-  }
+    setCartFlags(new Set());
+  };
 
   const submitCart = async () => {
-    if (cartFlags.size === 0) return
+    if (cartFlags.size === 0) return;
 
     try {
-      console.log("[v0] Submitting to contract:", Array.from(cartFlags))
+      console.log("[v0] Submitting to contract:", Array.from(cartFlags));
 
-      const newPlacedFlags = new Set([...placedFlags, ...cartFlags])
-      setPlacedFlags(newPlacedFlags)
-      setSubmittedPointsCount((prev) => prev + cartFlags.size)
+      const newPlacedFlags = new Set([...placedFlags, ...cartFlags]);
+      setPlacedFlags(newPlacedFlags);
+      setSubmittedPointsCount((prev) => prev + cartFlags.size);
 
-      setCartFlags(new Set())
+      setCartFlags(new Set());
 
-      alert(`Successfully submitted ${cartFlags.size} points to the contract!`)
+      alert(`Successfully submitted ${cartFlags.size} points to the contract!`);
     } catch (error) {
-      console.error("[v0] Contract submission failed:", error)
-      alert("Failed to submit to contract. Please try again.")
+      console.error("[v0] Contract submission failed:", error);
+      alert("Failed to submit to contract. Please try again.");
     }
-  }
+  };
 
-  const availablePoints = maxPointsPerGame - submittedPointsCount - cartFlags.size
-  const cartSize = cartFlags.size
-  const totalFlags = placedFlags.size
-  const cartTotal = cartSize * pointCost
+  const availablePoints =
+    maxPointsPerGame - submittedPointsCount - cartFlags.size;
+  const cartSize = cartFlags.size;
+  const totalFlags = placedFlags.size;
+  const cartTotal = cartSize * pointCost;
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-amber-50 via-orange-50 to-red-50">
       {!isConnected ? (
-        <div className="px-4 py-8">
-          <div className="max-w-sm mx-auto">
-            <Card className="text-center">
-              <CardHeader className="pb-4">
-                <div className="w-16 h-16 bg-primary/10 rounded-full flex items-center justify-center mx-auto mb-4">
-                  <Wallet className="w-8 h-8 text-primary" />
-                </div>
-                <CardTitle className="text-xl">Connect Your Wallet</CardTitle>
-                <CardDescription className="text-sm">
-                  Connect your Coinbase Wallet to join the treasure hunt on Base
-                </CardDescription>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                <Button onClick={connectWallet} disabled={isConnecting} className="w-full" size="lg">
-                  <Wallet className="w-5 h-5 mr-2" />
-                  {isConnecting ? "Connecting..." : "Connect Wallet"}
-                </Button>
-                <p className="text-xs text-muted-foreground">Base mini app for Coinbase Wallet</p>
-              </CardContent>
-            </Card>
-          </div>
-        </div>
+        <LandingCard
+          onPlay={connectWallet}
+          onShowInstructions={() => console.log("show instructions")}
+        />
       ) : gameState === "playing" ? (
         <div className="flex flex-col h-screen max-w-sm mx-auto bg-white">
           {/* Compact Mobile Header */}
@@ -117,7 +110,9 @@ export default function TreasureHuntGame() {
                 <div className="w-6 h-6 bg-gradient-to-br from-amber-600 to-orange-600 rounded-md flex items-center justify-center">
                   <MapPin className="w-3 h-3 text-white" />
                 </div>
-                <h1 className="text-sm font-bold text-amber-900">Buenos Aires Hunt</h1>
+                <h1 className="text-sm font-bold text-amber-900">
+                  Buenos Aires Hunt
+                </h1>
               </div>
               <div className="flex items-center gap-2">
                 {selectedMainSquare && (
@@ -156,17 +151,28 @@ export default function TreasureHuntGame() {
           <div className="bg-white border-t px-3 py-2 flex-shrink-0">
             <div className="flex items-center justify-between mb-2">
               <div className="flex items-center gap-3 text-xs">
-                <span className="text-amber-600 font-medium">{cartSize} in cart</span>
-                <span className="text-green-600 font-medium">{totalFlags} submitted</span>
+                <span className="text-amber-600 font-medium">
+                  {cartSize} in cart
+                </span>
+                <span className="text-green-600 font-medium">
+                  {totalFlags} submitted
+                </span>
                 <span className="text-gray-500">
                   {availablePoints}/{maxPointsPerGame} left
                 </span>
               </div>
-              <span className="font-mono text-sm font-bold">{cartTotal.toFixed(3)} ETH</span>
+              <span className="font-mono text-sm font-bold">
+                {cartTotal.toFixed(3)} ETH
+              </span>
             </div>
 
             <div className="flex gap-2">
-              <Button onClick={submitCart} disabled={cartSize === 0} size="sm" className="flex-1 h-8">
+              <Button
+                onClick={submitCart}
+                disabled={cartSize === 0}
+                size="sm"
+                className="flex-1 h-8"
+              >
                 Submit ({cartSize})
               </Button>
               <Button
@@ -196,8 +202,12 @@ export default function TreasureHuntGame() {
             <div className="w-16 h-16 bg-gradient-to-br from-amber-600 to-orange-600 rounded-xl flex items-center justify-center mx-auto mb-4">
               <MapPin className="w-8 h-8 text-white" />
             </div>
-            <h2 className="text-2xl font-bold text-amber-900 mb-2">Colegiales Treasure Hunt</h2>
-            <p className="text-amber-700 text-sm">Join the multiplayer adventure</p>
+            <h2 className="text-2xl font-bold text-amber-900 mb-2">
+              Colegiales Treasure Hunt
+            </h2>
+            <p className="text-amber-700 text-sm">
+              Join the multiplayer adventure
+            </p>
           </div>
 
           <div className="space-y-4 max-w-sm mx-auto">
@@ -217,14 +227,19 @@ export default function TreasureHuntGame() {
                 </div>
 
                 <div className="flex items-center justify-between">
-                  <span className="text-sm text-muted-foreground">Starts in</span>
+                  <span className="text-sm text-muted-foreground">
+                    Starts in
+                  </span>
                   <Badge variant="outline" className="font-mono">
-                    {mockGameData.currentPlayers}/{mockGameData.playersNeeded} Players
+                    {mockGameData.currentPlayers}/{mockGameData.playersNeeded}{" "}
+                    Players
                   </Badge>
                 </div>
 
                 <div className="flex items-center justify-between">
-                  <span className="text-sm text-muted-foreground">Prize Pool</span>
+                  <span className="text-sm text-muted-foreground">
+                    Prize Pool
+                  </span>
                   <Badge variant="secondary" className="text-accent">
                     <Zap className="w-4 h-4 mr-1" />
                     {mockGameData.prizePool}
@@ -235,9 +250,13 @@ export default function TreasureHuntGame() {
                   className="w-full"
                   size="lg"
                   onClick={handleJoinGame}
-                  disabled={mockGameData.currentPlayers >= mockGameData.playersNeeded}
+                  disabled={
+                    mockGameData.currentPlayers >= mockGameData.playersNeeded
+                  }
                 >
-                  {mockGameData.currentPlayers >= mockGameData.playersNeeded ? "Game Full" : "Join Game"}
+                  {mockGameData.currentPlayers >= mockGameData.playersNeeded
+                    ? "Game Full"
+                    : "Join Game"}
                 </Button>
               </CardContent>
             </Card>
@@ -245,5 +264,5 @@ export default function TreasureHuntGame() {
         </div>
       )}
     </div>
-  )
+  );
 }
