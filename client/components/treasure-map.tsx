@@ -4,18 +4,83 @@ import { useRef, useState, useCallback, useEffect } from "react"
 import { Badge } from "@/components/ui/badge"
 import { Eye } from "lucide-react"
 
+// Types for coordinates
+interface Point {
+  x: number
+  y: number
+}
+
+interface GridPosition {
+  mainGrid: Point
+  detailGrid: Point
+}
+
+// Constants
+const MAIN_GRID_SIZE = 4
+const DETAIL_GRID_SIZE = 4
+const TOTAL_GRID_SIZE = MAIN_GRID_SIZE * DETAIL_GRID_SIZE // 16 x 16 = 256 possible points
+const TOTAL_POINTS = 50
+
+// Mapping functions
+function absoluteToGrid(point: Point): GridPosition {
+  return {
+    mainGrid: {
+      x: Math.floor(point.x / DETAIL_GRID_SIZE),
+      y: Math.floor(point.y / DETAIL_GRID_SIZE)
+    },
+    detailGrid: {
+      x: point.x % DETAIL_GRID_SIZE,
+      y: point.y % DETAIL_GRID_SIZE
+    }
+  }
+}
+
+function gridToAbsolute(gridPos: GridPosition): Point {
+  return {
+    x: gridPos.mainGrid.x * DETAIL_GRID_SIZE + gridPos.detailGrid.x,
+    y: gridPos.mainGrid.y * DETAIL_GRID_SIZE + gridPos.detailGrid.y
+  }
+}
+
+function isValidPoint(point: Point): boolean {
+  return (
+    point.x >= 0 &&
+    point.x < TOTAL_GRID_SIZE &&
+    point.y >= 0 &&
+    point.y < TOTAL_GRID_SIZE
+  )
+}
+
+function isSamePoint(a: Point, b: Point): boolean {
+  return a.x === b.x && a.y === b.y
+}
+
+function getPointsInMainSquare(points: Point[], mainSquare: Point): Point[] {
+  const startX = mainSquare.x * DETAIL_GRID_SIZE
+  const startY = mainSquare.y * DETAIL_GRID_SIZE
+  const endX = startX + DETAIL_GRID_SIZE
+  const endY = startY + DETAIL_GRID_SIZE
+
+  return points.filter(point =>
+    point.x >= startX && point.x < endX &&
+    point.y >= startY && point.y < endY
+  )
+}
+
+function countPointsInMainSquare(points: Point[], mainSquare: Point): number {
+  return getPointsInMainSquare(points, mainSquare).length
+}
+
 interface TreasureMapProps {
   playerTurns: number
   onTurnUsed: () => void
   onTurnsChanged: (turns: number) => void
-  selectedMainSquare: { x: number; y: number } | null
-  setSelectedMainSquare: (square: { x: number; y: number } | null) => void
-  cartFlags: Set<string>
-  setCartFlags: (flags: Set<string>) => void
-  placedFlags: Set<string>
-  setPlacedFlags: (flags: Set<string>) => void
-  submittedPointsCount: number
-  setSubmittedPointsCount: (count: number | ((prev: number) => number)) => void
+  selectedMainSquare: Point | null
+  setSelectedMainSquare: (square: Point | null) => void
+  userCurrentSelection: Point[]
+  setUserCurrentSelection: (points: Point[]) => void
+  usersSubmitted: Point[]
+  setUsersSubmitted: (points: Point[]) => void
 }
 
 export function TreasureMap({
@@ -24,17 +89,15 @@ export function TreasureMap({
   onTurnsChanged,
   selectedMainSquare,
   setSelectedMainSquare,
-  cartFlags,
-  setCartFlags,
-  placedFlags,
-  setPlacedFlags,
-  submittedPointsCount,
-  setSubmittedPointsCount,
+  userCurrentSelection,
+  setUserCurrentSelection,
+  usersSubmitted,
+  setUsersSubmitted,
 }: TreasureMapProps) {
   const canvasRef = useRef<HTMLCanvasElement>(null)
   const detailedMapRef = useRef<HTMLImageElement | null>(null)
   const simplifiedMapRef = useRef<HTMLImageElement | null>(null)
-  const animationFrameRef = useRef<number | undefined>(undefined)
+
   const [mapPosition, setMapPosition] = useState({ x: 0, y: 0 })
   const [playerSnapshots, setPlayerSnapshots] = useState<
     Array<{
@@ -58,57 +121,11 @@ export function TreasureMap({
   const [isDragging, setIsDragging] = useState(false)
   const [lastMousePos, setLastMousePos] = useState({ x: 0, y: 0 })
 
-  const generateMockPlayerPositions = (viewType: "main" | "detailed", detailedSquare?: { x: number; y: number }) => {
-    const positions = new Set<string>()
 
-    if (viewType === "main") {
-      // For main view, only show which main squares have players (not exact positions)
-      const occupiedSquares = Math.floor(Math.random() * 8) + 3 // 3-10 occupied squares
-      for (let i = 0; i < occupiedSquares; i++) {
-        const mainX = Math.floor(Math.random() * mainMapSize)
-        const mainY = Math.floor(Math.random() * mainMapSize)
-        // Use a special format for main square occupancy
-        positions.add(`main-${mainX}-${mainY}`)
-      }
-    } else if (viewType === "detailed" && detailedSquare) {
-      // For detailed view, show exact positions within the selected square
-      const playersInSquare = Math.floor(Math.random() * 6) + 1 // 1-6 players in this square
-      for (let i = 0; i < playersInSquare; i++) {
-        const detailX = Math.floor(Math.random() * detailMapSize)
-        const detailY = Math.floor(Math.random() * detailMapSize)
-        positions.add(`flag-${detailedSquare.x}-${detailedSquare.y}-${detailX}-${detailY}`)
-      }
-    }
 
-    return positions
-  }
 
-  const purchaseSnapshot = () => {
-    if (playerTurns < 1) return // Need at least 1 turn to purchase
 
-    const viewType = selectedMainSquare ? "detailed" : "main"
-    const snapshot = {
-      id: `snapshot-${Date.now()}`,
-      timestamp: Date.now(),
-      playerPositions: generateMockPlayerPositions(viewType as "main" | "detailed", selectedMainSquare || undefined),
-      cost: snapshotCost,
-      viewType: viewType as "main" | "detailed",
-      detailedSquare: selectedMainSquare || undefined,
-    }
-
-    setPlayerSnapshots((prev) => [...prev, snapshot])
-    setActiveSnapshot(snapshot.id)
-    onTurnUsed() // Use one turn for the snapshot
-
-    // Auto-hide snapshot after 30 seconds
-    setTimeout(() => {
-      setActiveSnapshot(null)
-    }, 30000)
-  }
-
-  const getMainSquareKey = (gridX: number, gridY: number) => `main-${gridX}-${gridY}`
-  const getFlagKey = (mainX: number, mainY: number, detailX: number, detailY: number) =>
-    `flag-${mainX}-${mainY}-${detailX}-${detailY}`
+  // These functions are now defined at the top level
 
   const drawCanvas = useCallback(() => {
     const canvas = canvasRef.current
@@ -155,54 +172,62 @@ export function TreasureMap({
 
       ctx.globalAlpha = 1
 
-      placedFlags.forEach((flagKey) => {
-        const parts = flagKey.split("-")
-        if (parts.length === 5 && parts[0] === "flag") {
-          const [, mainX, mainY, detailX, detailY] = parts.map(Number) as [string, number, number, number, number]
+      // Render submitted points
+      const submittedPoints = getPointsInMainSquare(usersSubmitted, selectedMainSquare)
 
-          if (mainX === selectedMainSquare.x && mainY === selectedMainSquare.y) {
-            const flagX = (detailX / detailMapSize) * canvasWidth + canvasWidth / detailMapSize / 2
-            const flagY = (detailY / detailMapSize) * canvasHeight + canvasHeight / detailMapSize / 2
+      submittedPoints.forEach(point => {
+        // Convert absolute coordinates to relative coordinates within the detail view
+        const relativeX = point.x % DETAIL_GRID_SIZE
+        const relativeY = point.y % DETAIL_GRID_SIZE
 
-            const waveOffset = Math.sin(animationTime * 0.003 + flagX * 0.01) * 3
-            const currentFlagY = flagY + waveOffset
 
-            ctx.fillStyle = "#22c55e" // green-500 for submitted flags
-            ctx.beginPath()
-            ctx.arc(flagX, currentFlagY, 8, 0, 2 * Math.PI)
-            ctx.fill()
+        // Calculate center of the cell
+        const cellWidth = canvasWidth / DETAIL_GRID_SIZE
+        const cellHeight = canvasHeight / DETAIL_GRID_SIZE
+        const flagX = relativeX * cellWidth + cellWidth / 2
+        const flagY = relativeY * cellHeight + cellHeight / 2
 
-            ctx.fillStyle = "#ffffff"
-            ctx.font = "16px monospace"
-            ctx.textAlign = "center"
-            ctx.fillText("✓", flagX, currentFlagY + 5)
-          }
-        }
+        const waveOffset = Math.sin(animationTime * 0.003 + flagX * 0.01) * 3
+        const currentFlagY = flagY + waveOffset
+
+        ctx.fillStyle = "#22c55e" // green-500 for submitted flags
+        ctx.beginPath()
+        ctx.arc(flagX, currentFlagY, 8, 0, 2 * Math.PI)
+        ctx.fill()
+
+        ctx.fillStyle = "#ffffff"
+        ctx.font = "16px monospace"
+        ctx.textAlign = "center"
+        ctx.fillText("✓", flagX, currentFlagY + 5)
       })
 
-      cartFlags.forEach((flagKey) => {
-        const parts = flagKey.split("-")
-        if (parts.length === 5 && parts[0] === "flag") {
-          const [, mainX, mainY, detailX, detailY] = parts.map(Number) as [string, number, number, number, number]
+      // Render current selection points
+      const currentPoints = getPointsInMainSquare(userCurrentSelection, selectedMainSquare)
 
-          if (mainX === selectedMainSquare.x && mainY === selectedMainSquare.y) {
-            const flagX = (detailX / detailMapSize) * canvasWidth + canvasWidth / detailMapSize / 2
-            const flagY = (detailY / detailMapSize) * canvasHeight + canvasHeight / detailMapSize / 2
+      currentPoints.forEach(point => {
+        // Convert absolute coordinates to relative coordinates within the detail view
+        const relativeX = point.x % DETAIL_GRID_SIZE
+        const relativeY = point.y % DETAIL_GRID_SIZE
 
-            const waveOffset = Math.sin(animationTime * 0.003 + flagX * 0.01) * 3
-            const currentFlagY = flagY + waveOffset
 
-            ctx.fillStyle = "#f59e0b" // amber-500 for cart flags
-            ctx.beginPath()
-            ctx.arc(flagX, currentFlagY, 8, 0, 2 * Math.PI)
-            ctx.fill()
+        // Calculate center of the cell
+        const cellWidth = canvasWidth / DETAIL_GRID_SIZE
+        const cellHeight = canvasHeight / DETAIL_GRID_SIZE
+        const flagX = relativeX * cellWidth + cellWidth / 2
+        const flagY = relativeY * cellHeight + cellHeight / 2
 
-            ctx.fillStyle = "#ffffff"
-            ctx.font = "16px monospace"
-            ctx.textAlign = "center"
-            ctx.fillText("🛒", flagX, currentFlagY + 5)
-          }
-        }
+        const waveOffset = Math.sin(animationTime * 0.003 + flagX * 0.01) * 3
+        const currentFlagY = flagY + waveOffset
+
+        ctx.fillStyle = "#f59e0b" // amber-500 for current selection
+        ctx.beginPath()
+        ctx.arc(flagX, currentFlagY, 8, 0, 2 * Math.PI)
+        ctx.fill()
+
+        ctx.fillStyle = "#ffffff"
+        ctx.font = "16px monospace"
+        ctx.textAlign = "center"
+        ctx.fillText("🛒", flagX, currentFlagY + 5)
       })
 
       if (activeSnapshot) {
@@ -281,26 +306,19 @@ export function TreasureMap({
         }
       }
     } else {
-      const squaresWithSubmittedFlags = new Map<string, number>()
-      const squaresWithCartFlags = new Map<string, number>()
+      // Create a map of point counts per main square
+      const mainSquareCounts = new Map<string, { submitted: number; current: number }>()
 
-      placedFlags.forEach((flagKey) => {
-        const parts = flagKey.split("-")
-        if (parts.length === 5 && parts[0] === "flag") {
-          const [, mainX, mainY] = parts.map(Number) as [string, number, number, number, number]
-          const squareKey = `${mainX}-${mainY}`
-          squaresWithSubmittedFlags.set(squareKey, (squaresWithSubmittedFlags.get(squareKey) || 0) + 1)
+      // Initialize counts for all squares
+      for (let x = 0; x < MAIN_GRID_SIZE; x++) {
+        for (let y = 0; y < MAIN_GRID_SIZE; y++) {
+          const mainSquare: Point = { x, y }
+          mainSquareCounts.set(`${x}-${y}`, {
+            submitted: countPointsInMainSquare(usersSubmitted, mainSquare),
+            current: countPointsInMainSquare(userCurrentSelection, mainSquare)
+          })
         }
-      })
-
-      cartFlags.forEach((flagKey) => {
-        const parts = flagKey.split("-")
-        if (parts.length === 5 && parts[0] === "flag") {
-          const [, mainX, mainY] = parts.map(Number) as [string, number, number, number, number]
-          const squareKey = `${mainX}-${mainY}`
-          squaresWithCartFlags.set(squareKey, (squaresWithCartFlags.get(squareKey) || 0) + 1)
-        }
-      })
+      }
 
       if (detailedMapRef.current && imagesLoaded.detailed) {
         ctx.imageSmoothingEnabled = false
@@ -314,7 +332,8 @@ export function TreasureMap({
           for (let y = 0; y < mainMapSize; y++) {
             const squareKey = `${x}-${y}`
 
-            if (!squaresWithSubmittedFlags.has(squareKey) && !squaresWithCartFlags.has(squareKey)) {
+            const counts = mainSquareCounts.get(squareKey) || { submitted: 0, current: 0 }
+            if (counts.submitted === 0 && counts.current === 0) {
               const squareX = (x / mainMapSize) * canvasWidth
               const squareY = (y / mainMapSize) * canvasHeight
               const squareWidth = canvasWidth / mainMapSize
@@ -364,64 +383,62 @@ export function TreasureMap({
 
       ctx.globalAlpha = 1
 
-      squaresWithSubmittedFlags.forEach((flagCount, squareKey) => {
+      mainSquareCounts.forEach(({ submitted, current }, squareKey) => {
         const [x, y] = squareKey.split("-").map(Number)
-        const squareX = (x / mainMapSize) * canvasWidth
-        const squareY = (y / mainMapSize) * canvasHeight
-        const squareWidth = canvasWidth / mainMapSize
-        const squareHeight = canvasHeight / mainMapSize
+        const squareX = (x / MAIN_GRID_SIZE) * canvasWidth
+        const squareY = (y / MAIN_GRID_SIZE) * canvasHeight
+        const squareWidth = canvasWidth / MAIN_GRID_SIZE
+        const squareHeight = canvasHeight / MAIN_GRID_SIZE
 
-        const pulseIntensity = 0.5 + 0.5 * Math.sin(animationTime * 0.005)
-        ctx.strokeStyle = `rgba(34, 197, 94, ${pulseIntensity})` // green with pulse
-        ctx.lineWidth = 4
-        ctx.strokeRect(squareX + 2, squareY + 2, squareWidth - 4, squareHeight - 4)
+        // Render submitted points
+        if (submitted > 0) {
+          const pulseIntensity = 0.5 + 0.5 * Math.sin(animationTime * 0.005)
+          ctx.strokeStyle = `rgba(34, 197, 94, ${pulseIntensity})` // green with pulse
+          ctx.lineWidth = 4
+          ctx.strokeRect(squareX + 2, squareY + 2, squareWidth - 4, squareHeight - 4)
 
-        const centerX = squareX + squareWidth / 2
-        const centerY = squareY + squareHeight / 2
+          const centerX = squareX + squareWidth / 2
+          const centerY = squareY + squareHeight / 2
 
-        const breathe = 20 + Math.sin(animationTime * 0.004) * 3
-        ctx.fillStyle = "#22c55e" // green-500
-        ctx.beginPath()
-        ctx.arc(centerX, centerY, breathe, 0, 2 * Math.PI)
-        ctx.fill()
+          const breathe = 20 + Math.sin(animationTime * 0.004) * 3
+          ctx.fillStyle = "#22c55e" // green-500
+          ctx.beginPath()
+          ctx.arc(centerX, centerY, breathe, 0, 2 * Math.PI)
+          ctx.fill()
 
-        ctx.fillStyle = "#ffffff"
-        ctx.font = "bold 24px monospace"
-        ctx.textAlign = "center"
-        ctx.textBaseline = "middle"
-        ctx.fillText(flagCount.toString(), centerX, centerY)
-      })
+          ctx.fillStyle = "#ffffff"
+          ctx.font = "bold 24px monospace"
+          ctx.textAlign = "center"
+          ctx.textBaseline = "middle"
+          ctx.fillText(submitted.toString(), centerX, centerY)
+        }
 
-      squaresWithCartFlags.forEach((flagCount, squareKey) => {
-        const [x, y] = squareKey.split("-").map(Number)
-        const squareX = (x / mainMapSize) * canvasWidth
-        const squareY = (y / mainMapSize) * canvasHeight
-        const squareWidth = canvasWidth / mainMapSize
-        const squareHeight = canvasHeight / mainMapSize
+        // Render current selection points
+        if (current > 0) {
+          const pulseIntensity = 0.5 + 0.5 * Math.sin(animationTime * 0.005)
+          ctx.strokeStyle = `rgba(245, 158, 11, ${pulseIntensity})` // amber with pulse
+          ctx.lineWidth = 4
+          ctx.strokeRect(squareX + 2, squareY + 2, squareWidth - 4, squareHeight - 4)
 
-        const pulseIntensity = 0.5 + 0.5 * Math.sin(animationTime * 0.005)
-        ctx.strokeStyle = `rgba(245, 158, 11, ${pulseIntensity})` // amber with pulse
-        ctx.lineWidth = 4
-        ctx.strokeRect(squareX + 2, squareY + 2, squareWidth - 4, squareHeight - 4)
+          const centerX = squareX + squareWidth / 2
+          const centerY = squareY + squareHeight / 2 - 15 // Offset for current selection
 
-        const centerX = squareX + squareWidth / 2
-        const centerY = squareY + squareHeight / 2 - 15 // Offset for cart flags
+          const breathe = 15 + Math.sin(animationTime * 0.004) * 2
+          ctx.fillStyle = "#f59e0b" // amber-500
+          ctx.beginPath()
+          ctx.arc(centerX, centerY, breathe, 0, 2 * Math.PI)
+          ctx.fill()
 
-        const breathe = 15 + Math.sin(animationTime * 0.004) * 2
-        ctx.fillStyle = "#f59e0b" // amber-500
-        ctx.beginPath()
-        ctx.arc(centerX, centerY, breathe, 0, 2 * Math.PI)
-        ctx.fill()
+          ctx.fillStyle = "#ffffff"
+          ctx.font = "bold 18px monospace"
+          ctx.textAlign = "center"
+          ctx.textBaseline = "middle"
+          ctx.fillText(current.toString(), centerX, centerY)
 
-        ctx.fillStyle = "#ffffff"
-        ctx.font = "bold 18px monospace"
-        ctx.textAlign = "center"
-        ctx.textBaseline = "middle"
-        ctx.fillText(flagCount.toString(), centerX, centerY)
-
-        ctx.fillStyle = "#ffffff"
-        ctx.font = "12px monospace"
-        ctx.fillText("🛒", centerX, centerY + 25)
+          ctx.fillStyle = "#ffffff"
+          ctx.font = "12px monospace"
+          ctx.fillText("🛒", centerX, centerY + 25)
+        }
       })
 
       if (activeSnapshot) {
@@ -482,11 +499,9 @@ export function TreasureMap({
   }, [
     mapPosition,
     selectedMainSquare,
-    placedFlags,
-    cartFlags,
+    userCurrentSelection,
+    usersSubmitted,
     imagesLoaded,
-    mainMapSize,
-    detailMapSize,
     animationTime,
     activeSnapshot,
     playerSnapshots,
@@ -500,62 +515,104 @@ export function TreasureMap({
       if (!canvas) return
 
       const rect = canvas.getBoundingClientRect()
-      const mouseX = event.clientX - rect.left
-      const mouseY = event.clientY - rect.top
+      // Account for CSS scaling vs canvas intrinsic size
+      const scaleX = canvasWidth / rect.width
+      const scaleY = canvasHeight / rect.height
+      let mouseX = (event.clientX - rect.left) * scaleX
+      let mouseY = (event.clientY - rect.top) * scaleY
 
-      const transformedX = mouseX
-      const transformedY = mouseY
+      // Calculate center points
+      const centerX = canvasWidth / 2
+      const centerY = canvasHeight / 2
+
+
+
+      // Transform coordinates relative to center, adjust for pan
+      let transformedX = (mouseX - centerX - mapPosition.x) + centerX
+      let transformedY = (mouseY - centerY - mapPosition.y) + centerY
+
+      // Clamp to canvas bounds
+      transformedX = Math.max(0, Math.min(canvasWidth - 1, transformedX))
+      transformedY = Math.max(0, Math.min(canvasHeight - 1, transformedY))
+
+
 
       if (selectedMainSquare) {
-        if (submittedPointsCount + cartFlags.size >= 50) {
+        // We're in detail view
+        if (userCurrentSelection.length + usersSubmitted.length >= TOTAL_POINTS) {
           alert("No available points left!")
           return
         }
 
-        const detailX = Math.floor((transformedX / (canvasWidth / detailMapSize)))
-        const detailY = Math.floor((transformedY / (canvasHeight / detailMapSize)))
+        // Calculate detail grid coordinates using the same method as before
+        const cellW = canvasWidth / DETAIL_GRID_SIZE
+        const cellH = canvasHeight / DETAIL_GRID_SIZE
+        const detailX = Math.floor(transformedX / cellW)
+        const detailY = Math.floor(transformedY / cellH)
 
-        if (detailX >= 0 && detailX < detailMapSize && detailY >= 0 && detailY < detailMapSize) {
-          const flagKey = getFlagKey(Number(selectedMainSquare.x), Number(selectedMainSquare.y), Number(detailX), Number(detailY))
+        // Calculate base coordinates for this main square
+        const baseX = selectedMainSquare.x * DETAIL_GRID_SIZE
+        const baseY = selectedMainSquare.y * DETAIL_GRID_SIZE
 
-          if (cartFlags.has(flagKey)) {
-            removeFromCart(flagKey)
+
+
+        // Ensure coordinates are within bounds
+        if (detailX >= 0 && detailX < DETAIL_GRID_SIZE && detailY >= 0 && detailY < DETAIL_GRID_SIZE) {
+          // Calculate base coordinates (top-left of the selected main square in absolute coordinates)
+          const baseX = selectedMainSquare.x * DETAIL_GRID_SIZE
+          const baseY = selectedMainSquare.y * DETAIL_GRID_SIZE
+
+          const absolutePoint: Point = {
+            x: baseX + detailX,
+            y: baseY + detailY
+          }
+
+
+
+          if (!isValidPoint(absolutePoint)) return
+
+          // Check if point is already selected
+          const isAlreadySelected = userCurrentSelection.some(point => isSamePoint(point, absolutePoint))
+
+          if (isAlreadySelected) {
+            // Remove point if already selected
+            setUserCurrentSelection(userCurrentSelection.filter(point => !isSamePoint(point, absolutePoint)))
             return
           }
 
-          if (placedFlags.has(flagKey)) {
+          // Check if point is already submitted
+          const isAlreadySubmitted = usersSubmitted.some(point => isSamePoint(point, absolutePoint))
+
+          if (isAlreadySubmitted) {
             return
           }
 
-          if (submittedPointsCount + cartFlags.size >= 50) {
-            alert("Maximum 50 points per game reached!")
-            return
-          }
-
-          const newCartFlags = new Set(cartFlags)
-          newCartFlags.add(flagKey)
-          setCartFlags(newCartFlags)
+          // Add new point to selection
+          setUserCurrentSelection([...userCurrentSelection, absolutePoint])
         }
       } else {
-        const mainX = Math.floor((transformedX / (canvasWidth / mainMapSize)))
-        const mainY = Math.floor((transformedY / (canvasHeight / mainMapSize)))
+        // We're in main view
+        const mainCellW = canvasWidth / MAIN_GRID_SIZE
+        const mainCellH = canvasHeight / MAIN_GRID_SIZE
+        const mainX = Math.floor(transformedX / mainCellW)
+        const mainY = Math.floor(transformedY / mainCellH)
 
-        if (mainX >= 0 && mainX < mainMapSize && mainY >= 0 && mainY < mainMapSize) {
+
+
+        if (mainX >= 0 && mainX < MAIN_GRID_SIZE && mainY >= 0 && mainY < MAIN_GRID_SIZE) {
+
           setSelectedMainSquare({ x: mainX, y: mainY })
         }
       }
     },
     [
-      playerTurns,
       isDragging,
-      mapPosition,
       selectedMainSquare,
-      placedFlags,
-      cartFlags,
-      mainMapSize,
-      detailMapSize,
-      onTurnUsed,
-      submittedPointsCount,
+      userCurrentSelection,
+      usersSubmitted,
+      setUserCurrentSelection,
+      setSelectedMainSquare,
+      mapPosition,
     ],
   )
 
@@ -567,6 +624,8 @@ export function TreasureMap({
   const handleMouseMove = useCallback(
     (event: React.MouseEvent<HTMLCanvasElement>) => {
       if (!isDragging) return
+
+
 
       const deltaX = event.clientX - lastMousePos.x
       const deltaY = event.clientY - lastMousePos.y
@@ -609,11 +668,7 @@ export function TreasureMap({
     drawCanvas()
   }, [drawCanvas])
 
-  const removeFromCart = (flagKey: string) => {
-    const newCartFlags = new Set(cartFlags)
-    newCartFlags.delete(flagKey)
-    setCartFlags(newCartFlags)
-  }
+
 
   return (
     <div className="h-full flex flex-col">
@@ -642,7 +697,7 @@ export function TreasureMap({
           }}
           onTouchEnd={() => handleMouseUp()}
                       className={`w-full h-full ${
-             selectedMainSquare ? (submittedPointsCount + cartFlags.size < 50 ? "cursor-crosshair" : "cursor-not-allowed") : "cursor-pointer"
+             selectedMainSquare ? (userCurrentSelection.length + usersSubmitted.length < TOTAL_POINTS ? "cursor-crosshair" : "cursor-not-allowed") : "cursor-pointer"
             } ${isDragging ? "cursor-grabbing" : ""}`}
           style={{
             objectFit: "contain",
