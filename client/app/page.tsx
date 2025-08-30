@@ -21,7 +21,6 @@ export default function TreasureHuntGame() {
         onShowInstructions={() => console.log("show instructions")}
       />
 
-
     </div>
   );
 }
