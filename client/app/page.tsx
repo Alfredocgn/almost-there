@@ -33,9 +33,13 @@ export default function TreasureHuntGame() {
     x: number;
     y: number;
   } | null>(null);
-  const [cartFlags, setCartFlags] = useState<Set<string>>(new Set()); // Pending flags in cart
-  const [placedFlags, setPlacedFlags] = useState<Set<string>>(new Set()); // Submitted flags
-  const [submittedPointsCount, setSubmittedPointsCount] = useState(0); // Total submitted across all transactions
+  // Absolute coordinate model for points
+  const [userCurrentSelection, setUserCurrentSelection] = useState<
+    Array<{ x: number; y: number }>
+  >([]); // in cart
+  const [usersSubmitted, setUsersSubmitted] = useState<
+    Array<{ x: number; y: number }>
+  >([]); // submitted
   const maxPointsPerGame = 50;
   const pointCost = 0.001; // ETH per point
 
@@ -67,22 +71,17 @@ export default function TreasureHuntGame() {
   };
 
   const clearCart = () => {
-    setCartFlags(new Set());
+    setUserCurrentSelection([]);
   };
 
   const submitCart = async () => {
-    if (cartFlags.size === 0) return;
+    if (userCurrentSelection.length === 0) return;
 
     try {
-      console.log("[v0] Submitting to contract:", Array.from(cartFlags));
-
-      const newPlacedFlags = new Set([...placedFlags, ...cartFlags]);
-      setPlacedFlags(newPlacedFlags);
-      setSubmittedPointsCount((prev) => prev + cartFlags.size);
-
-      setCartFlags(new Set());
-
-      alert(`Successfully submitted ${cartFlags.size} points to the contract!`);
+      const toSubmit = userCurrentSelection.length;
+      setUsersSubmitted([...usersSubmitted, ...userCurrentSelection]);
+      setUserCurrentSelection([]);
+      alert(`Successfully submitted ${toSubmit} points to the contract!`);
     } catch (error) {
       console.error("[v0] Contract submission failed:", error);
       alert("Failed to submit to contract. Please try again.");
@@ -90,9 +89,9 @@ export default function TreasureHuntGame() {
   };
 
   const availablePoints =
-    maxPointsPerGame - submittedPointsCount - cartFlags.size;
-  const cartSize = cartFlags.size;
-  const totalFlags = placedFlags.size;
+    maxPointsPerGame - usersSubmitted.length - userCurrentSelection.length;
+  const cartSize = userCurrentSelection.length;
+  const totalFlags = usersSubmitted.length;
   const cartTotal = cartSize * pointCost;
 
   return (
@@ -139,12 +138,10 @@ export default function TreasureHuntGame() {
               onTurnsChanged={handleTurnsChanged}
               selectedMainSquare={selectedMainSquare}
               setSelectedMainSquare={setSelectedMainSquare}
-              cartFlags={cartFlags}
-              setCartFlags={setCartFlags}
-              placedFlags={placedFlags}
-              setPlacedFlags={setPlacedFlags}
-              submittedPointsCount={submittedPointsCount}
-              setSubmittedPointsCount={setSubmittedPointsCount}
+              userCurrentSelection={userCurrentSelection}
+              setUserCurrentSelection={setUserCurrentSelection}
+              usersSubmitted={usersSubmitted}
+              setUsersSubmitted={setUsersSubmitted}
             />
           </div>
 
@@ -178,7 +175,7 @@ export default function TreasureHuntGame() {
               </Button>
               <Button
                 onClick={clearCart}
-                disabled={cartFlags.size === 0}
+                disabled={userCurrentSelection.length === 0}
                 variant="outline"
                 size="sm"
                 className="h-8 px-3 bg-transparent"
