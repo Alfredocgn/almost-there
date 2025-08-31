@@ -73,25 +73,25 @@ function countPointsInMainSquare(points: Point[], mainSquare: Point): number {
 
 // Types for coordinates
 interface Point {
-  x: number
-  y: number
+  x: number;
+  y: number;
 }
 
 interface GridPosition {
-  mainGrid: Point
-  detailGrid: Point
+  mainGrid: Point;
+  detailGrid: Point;
 }
 
 interface TreasureMapProps {
-  playerTurns: number
-  onTurnUsed: () => void
-  onTurnsChanged: (turns: number) => void
-  selectedMainSquare: Point | null
-  setSelectedMainSquare: (square: Point | null) => void
-  userCurrentSelection: Point[]
-  setUserCurrentSelection: (points: Point[]) => void
-  usersSubmitted: Point[]
-  setUsersSubmitted: (points: Point[]) => void
+  playerTurns: number;
+  onTurnUsed: () => void;
+  onTurnsChanged: (turns: number) => void;
+  selectedMainSquare: Point | null;
+  setSelectedMainSquare: (square: Point | null) => void;
+  userCurrentSelection: Point[];
+  setUserCurrentSelection: (points: Point[]) => void;
+  usersSubmitted: Point[];
+  setUsersSubmitted: (points: Point[]) => void;
 }
 
 export function TreasureMap({
@@ -105,11 +105,11 @@ export function TreasureMap({
   usersSubmitted,
   setUsersSubmitted,
 }: TreasureMapProps) {
-  const canvasRef = useRef<HTMLCanvasElement>(null)
-  const detailedMapRef = useRef<HTMLImageElement | null>(null)
-  const simplifiedMapRef = useRef<HTMLImageElement | null>(null)
+  const canvasRef = useRef<HTMLCanvasElement>(null);
+  const detailedMapRef = useRef<HTMLImageElement | null>(null);
+  const simplifiedMapRef = useRef<HTMLImageElement | null>(null);
 
-  const [mapPosition, setMapPosition] = useState({ x: 0, y: 0 })
+  const [mapPosition, setMapPosition] = useState({ x: 0, y: 0 });
   const [playerSnapshots, setPlayerSnapshots] = useState<
     Array<{
       id: string;
@@ -134,10 +134,6 @@ export function TreasureMap({
   const canvasHeight = 600;
   const [isDragging, setIsDragging] = useState(false);
   const [lastMousePos, setLastMousePos] = useState({ x: 0, y: 0 });
-
-
-
-
 
   // These functions are now defined at the top level
 
@@ -199,62 +195,66 @@ export function TreasureMap({
       ctx.globalAlpha = 1;
 
       // Render submitted points
-      const submittedPoints = getPointsInMainSquare(usersSubmitted, selectedMainSquare)
+      const submittedPoints = getPointsInMainSquare(
+        usersSubmitted,
+        selectedMainSquare
+      );
 
-      submittedPoints.forEach(point => {
+      submittedPoints.forEach((point) => {
         // Convert absolute coordinates to relative coordinates within the detail view
-        const relativeX = point.x % DETAIL_GRID_SIZE
-        const relativeY = point.y % DETAIL_GRID_SIZE
-
+        const relativeX = point.x % DETAIL_GRID_SIZE;
+        const relativeY = point.y % DETAIL_GRID_SIZE;
 
         // Calculate center of the cell
-        const cellWidth = canvasWidth / DETAIL_GRID_SIZE
-        const cellHeight = canvasHeight / DETAIL_GRID_SIZE
-        const flagX = relativeX * cellWidth + cellWidth / 2
-        const flagY = relativeY * cellHeight + cellHeight / 2
+        const cellWidth = canvasWidth / DETAIL_GRID_SIZE;
+        const cellHeight = canvasHeight / DETAIL_GRID_SIZE;
+        const flagX = relativeX * cellWidth + cellWidth / 2;
+        const flagY = relativeY * cellHeight + cellHeight / 2;
 
-        const waveOffset = Math.sin(animationTime * 0.003 + flagX * 0.01) * 3
-        const currentFlagY = flagY + waveOffset
+        const waveOffset = Math.sin(animationTime * 0.003 + flagX * 0.01) * 3;
+        const currentFlagY = flagY + waveOffset;
 
-        ctx.fillStyle = "#22c55e" // green-500 for submitted flags
-        ctx.beginPath()
-        ctx.arc(flagX, currentFlagY, 8, 0, 2 * Math.PI)
-        ctx.fill()
+        ctx.fillStyle = "#22c55e"; // green-500 for submitted flags
+        ctx.beginPath();
+        ctx.arc(flagX, currentFlagY, 8, 0, 2 * Math.PI);
+        ctx.fill();
 
-        ctx.fillStyle = "#ffffff"
-        ctx.font = "16px monospace"
-        ctx.textAlign = "center"
-        ctx.fillText("✓", flagX, currentFlagY + 5)
-      })
+        ctx.fillStyle = "#ffffff";
+        ctx.font = "16px monospace";
+        ctx.textAlign = "center";
+        ctx.fillText("✓", flagX, currentFlagY + 5);
+      });
 
       // Render current selection points
-      const currentPoints = getPointsInMainSquare(userCurrentSelection, selectedMainSquare)
+      const currentPoints = getPointsInMainSquare(
+        userCurrentSelection,
+        selectedMainSquare
+      );
 
-      currentPoints.forEach(point => {
+      currentPoints.forEach((point) => {
         // Convert absolute coordinates to relative coordinates within the detail view
-        const relativeX = point.x % DETAIL_GRID_SIZE
-        const relativeY = point.y % DETAIL_GRID_SIZE
-
+        const relativeX = point.x % DETAIL_GRID_SIZE;
+        const relativeY = point.y % DETAIL_GRID_SIZE;
 
         // Calculate center of the cell
-        const cellWidth = canvasWidth / DETAIL_GRID_SIZE
-        const cellHeight = canvasHeight / DETAIL_GRID_SIZE
-        const flagX = relativeX * cellWidth + cellWidth / 2
-        const flagY = relativeY * cellHeight + cellHeight / 2
+        const cellWidth = canvasWidth / DETAIL_GRID_SIZE;
+        const cellHeight = canvasHeight / DETAIL_GRID_SIZE;
+        const flagX = relativeX * cellWidth + cellWidth / 2;
+        const flagY = relativeY * cellHeight + cellHeight / 2;
 
-        const waveOffset = Math.sin(animationTime * 0.003 + flagX * 0.01) * 3
-        const currentFlagY = flagY + waveOffset
+        const waveOffset = Math.sin(animationTime * 0.003 + flagX * 0.01) * 3;
+        const currentFlagY = flagY + waveOffset;
 
-        ctx.fillStyle = "#f59e0b" // amber-500 for current selection
-        ctx.beginPath()
-        ctx.arc(flagX, currentFlagY, 8, 0, 2 * Math.PI)
-        ctx.fill()
+        ctx.fillStyle = "#f59e0b"; // amber-500 for current selection
+        ctx.beginPath();
+        ctx.arc(flagX, currentFlagY, 8, 0, 2 * Math.PI);
+        ctx.fill();
 
-        ctx.fillStyle = "#ffffff"
-        ctx.font = "16px monospace"
-        ctx.textAlign = "center"
-        ctx.fillText("🛒", flagX, currentFlagY + 5)
-      })
+        ctx.fillStyle = "#ffffff";
+        ctx.font = "16px monospace";
+        ctx.textAlign = "center";
+        ctx.fillText("🛒", flagX, currentFlagY + 5);
+      });
 
       if (activeSnapshot) {
         const snapshot = playerSnapshots.find((s) => s.id === activeSnapshot);
@@ -344,16 +344,19 @@ export function TreasureMap({
       }
     } else {
       // Create a map of point counts per main square
-      const mainSquareCounts = new Map<string, { submitted: number; current: number }>()
+      const mainSquareCounts = new Map<
+        string,
+        { submitted: number; current: number }
+      >();
 
       // Initialize counts for all squares
       for (let x = 0; x < MAIN_GRID_SIZE; x++) {
         for (let y = 0; y < MAIN_GRID_SIZE; y++) {
-          const mainSquare: Point = { x, y }
+          const mainSquare: Point = { x, y };
           mainSquareCounts.set(`${x}-${y}`, {
             submitted: countPointsInMainSquare(usersSubmitted, mainSquare),
-            current: countPointsInMainSquare(userCurrentSelection, mainSquare)
-          })
+            current: countPointsInMainSquare(userCurrentSelection, mainSquare),
+          });
         }
       }
 
@@ -369,12 +372,15 @@ export function TreasureMap({
           for (let y = 0; y < mainMapSize; y++) {
             const squareKey = `${x}-${y}`;
 
-            const counts = mainSquareCounts.get(squareKey) || { submitted: 0, current: 0 }
+            const counts = mainSquareCounts.get(squareKey) || {
+              submitted: 0,
+              current: 0,
+            };
             if (counts.submitted === 0 && counts.current === 0) {
-              const squareX = (x / mainMapSize) * canvasWidth
-              const squareY = (y / mainMapSize) * canvasHeight
-              const squareWidth = canvasWidth / mainMapSize
-              const squareHeight = canvasHeight / mainMapSize
+              const squareX = (x / mainMapSize) * canvasWidth;
+              const squareY = (y / mainMapSize) * canvasHeight;
+              const squareWidth = canvasWidth / mainMapSize;
+              const squareHeight = canvasHeight / mainMapSize;
 
               const cropX = (x / mainMapSize) * simplifiedMapRef.current.width;
               const cropY = (y / mainMapSize) * simplifiedMapRef.current.height;
@@ -421,62 +427,72 @@ export function TreasureMap({
       ctx.globalAlpha = 1;
 
       mainSquareCounts.forEach(({ submitted, current }, squareKey) => {
-        const [x, y] = squareKey.split("-").map(Number)
-        const squareX = (x / MAIN_GRID_SIZE) * canvasWidth
-        const squareY = (y / MAIN_GRID_SIZE) * canvasHeight
-        const squareWidth = canvasWidth / MAIN_GRID_SIZE
-        const squareHeight = canvasHeight / MAIN_GRID_SIZE
+        const [x, y] = squareKey.split("-").map(Number);
+        const squareX = (x / MAIN_GRID_SIZE) * canvasWidth;
+        const squareY = (y / MAIN_GRID_SIZE) * canvasHeight;
+        const squareWidth = canvasWidth / MAIN_GRID_SIZE;
+        const squareHeight = canvasHeight / MAIN_GRID_SIZE;
 
         // Render submitted points
         if (submitted > 0) {
-          const pulseIntensity = 0.5 + 0.5 * Math.sin(animationTime * 0.005)
-          ctx.strokeStyle = `rgba(34, 197, 94, ${pulseIntensity})` // green with pulse
-          ctx.lineWidth = 4
-          ctx.strokeRect(squareX + 2, squareY + 2, squareWidth - 4, squareHeight - 4)
+          const pulseIntensity = 0.5 + 0.5 * Math.sin(animationTime * 0.005);
+          ctx.strokeStyle = `rgba(34, 197, 94, ${pulseIntensity})`; // green with pulse
+          ctx.lineWidth = 4;
+          ctx.strokeRect(
+            squareX + 2,
+            squareY + 2,
+            squareWidth - 4,
+            squareHeight - 4
+          );
 
-          const centerX = squareX + squareWidth / 2
-          const centerY = squareY + squareHeight / 2
+          const centerX = squareX + squareWidth / 2;
+          const centerY = squareY + squareHeight / 2;
 
-          const breathe = 20 + Math.sin(animationTime * 0.004) * 3
-          ctx.fillStyle = "#22c55e" // green-500
-          ctx.beginPath()
-          ctx.arc(centerX, centerY, breathe, 0, 2 * Math.PI)
-          ctx.fill()
+          const breathe = 20 + Math.sin(animationTime * 0.004) * 3;
+          ctx.fillStyle = "#22c55e"; // green-500
+          ctx.beginPath();
+          ctx.arc(centerX, centerY, breathe, 0, 2 * Math.PI);
+          ctx.fill();
 
-          ctx.fillStyle = "#ffffff"
-          ctx.font = "bold 24px monospace"
-          ctx.textAlign = "center"
-          ctx.textBaseline = "middle"
-          ctx.fillText(submitted.toString(), centerX, centerY)
+          ctx.fillStyle = "#ffffff";
+          ctx.font = "bold 24px monospace";
+          ctx.textAlign = "center";
+          ctx.textBaseline = "middle";
+          ctx.fillText(submitted.toString(), centerX, centerY);
         }
 
         // Render current selection points
         if (current > 0) {
-          const pulseIntensity = 0.5 + 0.5 * Math.sin(animationTime * 0.005)
-          ctx.strokeStyle = `rgba(245, 158, 11, ${pulseIntensity})` // amber with pulse
-          ctx.lineWidth = 4
-          ctx.strokeRect(squareX + 2, squareY + 2, squareWidth - 4, squareHeight - 4)
+          const pulseIntensity = 0.5 + 0.5 * Math.sin(animationTime * 0.005);
+          ctx.strokeStyle = `rgba(245, 158, 11, ${pulseIntensity})`; // amber with pulse
+          ctx.lineWidth = 4;
+          ctx.strokeRect(
+            squareX + 2,
+            squareY + 2,
+            squareWidth - 4,
+            squareHeight - 4
+          );
 
-          const centerX = squareX + squareWidth / 2
-          const centerY = squareY + squareHeight / 2 - 15 // Offset for current selection
+          const centerX = squareX + squareWidth / 2;
+          const centerY = squareY + squareHeight / 2 - 15; // Offset for current selection
 
-          const breathe = 15 + Math.sin(animationTime * 0.004) * 2
-          ctx.fillStyle = "#f59e0b" // amber-500
-          ctx.beginPath()
-          ctx.arc(centerX, centerY, breathe, 0, 2 * Math.PI)
-          ctx.fill()
+          const breathe = 15 + Math.sin(animationTime * 0.004) * 2;
+          ctx.fillStyle = "#f59e0b"; // amber-500
+          ctx.beginPath();
+          ctx.arc(centerX, centerY, breathe, 0, 2 * Math.PI);
+          ctx.fill();
 
-          ctx.fillStyle = "#ffffff"
-          ctx.font = "bold 18px monospace"
-          ctx.textAlign = "center"
-          ctx.textBaseline = "middle"
-          ctx.fillText(current.toString(), centerX, centerY)
+          ctx.fillStyle = "#ffffff";
+          ctx.font = "bold 18px monospace";
+          ctx.textAlign = "center";
+          ctx.textBaseline = "middle";
+          ctx.fillText(current.toString(), centerX, centerY);
 
-          ctx.fillStyle = "#ffffff"
-          ctx.font = "12px monospace"
-          ctx.fillText("🛒", centerX, centerY + 25)
+          ctx.fillStyle = "#ffffff";
+          ctx.font = "12px monospace";
+          ctx.fillText("🛒", centerX, centerY + 25);
         }
-      })
+      });
 
       if (activeSnapshot) {
         const snapshot = playerSnapshots.find((s) => s.id === activeSnapshot);
@@ -578,94 +594,104 @@ export function TreasureMap({
       const canvas = canvasRef.current;
       if (!canvas) return;
 
-      const rect = canvas.getBoundingClientRect()
+      const rect = canvas.getBoundingClientRect();
       // Account for CSS scaling vs canvas intrinsic size
-      const scaleX = canvasWidth / rect.width
-      const scaleY = canvasHeight / rect.height
-      let mouseX = (event.clientX - rect.left) * scaleX
-      let mouseY = (event.clientY - rect.top) * scaleY
+      const scaleX = canvasWidth / rect.width;
+      const scaleY = canvasHeight / rect.height;
+      let mouseX = (event.clientX - rect.left) * scaleX;
+      let mouseY = (event.clientY - rect.top) * scaleY;
 
       // Calculate center points
-      const centerX = canvasWidth / 2
-      const centerY = canvasHeight / 2
-
-
+      const centerX = canvasWidth / 2;
+      const centerY = canvasHeight / 2;
 
       // Transform coordinates relative to center, adjust for pan
-      let transformedX = (mouseX - centerX - mapPosition.x) + centerX
-      let transformedY = (mouseY - centerY - mapPosition.y) + centerY
+      let transformedX = mouseX - centerX - mapPosition.x + centerX;
+      let transformedY = mouseY - centerY - mapPosition.y + centerY;
 
       // Clamp to canvas bounds
-      transformedX = Math.max(0, Math.min(canvasWidth - 1, transformedX))
-      transformedY = Math.max(0, Math.min(canvasHeight - 1, transformedY))
-
-
+      transformedX = Math.max(0, Math.min(canvasWidth - 1, transformedX));
+      transformedY = Math.max(0, Math.min(canvasHeight - 1, transformedY));
 
       if (selectedMainSquare) {
         // We're in detail view
-        if (userCurrentSelection.length + usersSubmitted.length >= TOTAL_POINTS) {
-          alert("No available points left!")
-          return
+        if (
+          userCurrentSelection.length + usersSubmitted.length >=
+          TOTAL_POINTS
+        ) {
+          alert("No available points left!");
+          return;
         }
 
         // Calculate detail grid coordinates using the same method as before
-        const cellW = canvasWidth / DETAIL_GRID_SIZE
-        const cellH = canvasHeight / DETAIL_GRID_SIZE
-        const detailX = Math.floor(transformedX / cellW)
-        const detailY = Math.floor(transformedY / cellH)
+        const cellW = canvasWidth / DETAIL_GRID_SIZE;
+        const cellH = canvasHeight / DETAIL_GRID_SIZE;
+        const detailX = Math.floor(transformedX / cellW);
+        const detailY = Math.floor(transformedY / cellH);
 
         // Calculate base coordinates for this main square
-        const baseX = selectedMainSquare.x * DETAIL_GRID_SIZE
-        const baseY = selectedMainSquare.y * DETAIL_GRID_SIZE
-
-
+        const baseX = selectedMainSquare.x * DETAIL_GRID_SIZE;
+        const baseY = selectedMainSquare.y * DETAIL_GRID_SIZE;
 
         // Ensure coordinates are within bounds
-        if (detailX >= 0 && detailX < DETAIL_GRID_SIZE && detailY >= 0 && detailY < DETAIL_GRID_SIZE) {
+        if (
+          detailX >= 0 &&
+          detailX < DETAIL_GRID_SIZE &&
+          detailY >= 0 &&
+          detailY < DETAIL_GRID_SIZE
+        ) {
           // Calculate base coordinates (top-left of the selected main square in absolute coordinates)
-          const baseX = selectedMainSquare.x * DETAIL_GRID_SIZE
-          const baseY = selectedMainSquare.y * DETAIL_GRID_SIZE
+          const baseX = selectedMainSquare.x * DETAIL_GRID_SIZE;
+          const baseY = selectedMainSquare.y * DETAIL_GRID_SIZE;
 
           const absolutePoint: Point = {
             x: baseX + detailX,
-            y: baseY + detailY
-          }
+            y: baseY + detailY,
+          };
 
-
-
-          if (!isValidPoint(absolutePoint)) return
+          if (!isValidPoint(absolutePoint)) return;
 
           // Check if point is already selected
-          const isAlreadySelected = userCurrentSelection.some(point => isSamePoint(point, absolutePoint))
+          const isAlreadySelected = userCurrentSelection.some((point) =>
+            isSamePoint(point, absolutePoint)
+          );
 
           if (isAlreadySelected) {
             // Remove point if already selected
-            setUserCurrentSelection(userCurrentSelection.filter(point => !isSamePoint(point, absolutePoint)))
-            return
+            setUserCurrentSelection(
+              userCurrentSelection.filter(
+                (point) => !isSamePoint(point, absolutePoint)
+              )
+            );
+            return;
           }
 
           // Check if point is already submitted
-          const isAlreadySubmitted = usersSubmitted.some(point => isSamePoint(point, absolutePoint))
+          const isAlreadySubmitted = usersSubmitted.some((point) =>
+            isSamePoint(point, absolutePoint)
+          );
 
           if (isAlreadySubmitted) {
-            return
+            return;
           }
 
           // Add new point to selection
-          setUserCurrentSelection([...userCurrentSelection, absolutePoint])
+          setUserCurrentSelection([...userCurrentSelection, absolutePoint]);
         }
       } else {
         // We're in main view
-        const mainCellW = canvasWidth / MAIN_GRID_SIZE
-        const mainCellH = canvasHeight / MAIN_GRID_SIZE
-        const mainX = Math.floor(transformedX / mainCellW)
-        const mainY = Math.floor(transformedY / mainCellH)
+        const mainCellW = canvasWidth / MAIN_GRID_SIZE;
+        const mainCellH = canvasHeight / MAIN_GRID_SIZE;
+        const mainX = Math.floor(transformedX / mainCellW);
+        const mainY = Math.floor(transformedY / mainCellH);
 
-
-
-        if (mainX >= 0 && mainX < MAIN_GRID_SIZE && mainY >= 0 && mainY < MAIN_GRID_SIZE) {
-
-          setSelectedMainSquare({ x: mainX, y: mainY })
+        if (
+          mainX >= 0 &&
+          mainX < MAIN_GRID_SIZE &&
+          mainY >= 0 &&
+          mainY < MAIN_GRID_SIZE
+        ) {
+          setSelectedMainSquare({ x: mainX, y: mainY });
         }
       }
     },
@@ -677,8 +703,8 @@ export function TreasureMap({
       setUserCurrentSelection,
       setSelectedMainSquare,
       mapPosition,
-    ],
-  )
+    ]
+  );
 
   const handleMouseDown = useCallback(
     (event: React.MouseEvent<HTMLCanvasElement>) => {
@@ -692,10 +718,8 @@ export function TreasureMap({
     (event: React.MouseEvent<HTMLCanvasElement>) => {
       if (!isDragging) return;
 
-
-
-      const deltaX = event.clientX - lastMousePos.x
-      const deltaY = event.clientY - lastMousePos.y
+      const deltaX = event.clientX - lastMousePos.x;
+      const deltaY = event.clientY - lastMousePos.y;
 
       setMapPosition((prev) => ({
         x: prev.x + deltaX,
@@ -734,15 +758,13 @@ export function TreasureMap({
   }, []);
 
   useEffect(() => {
-    drawCanvas()
-  }, [drawCanvas])
-
-
+    drawCanvas();
+  }, [drawCanvas]);
 
   return (
     <div className="h-full flex flex-col">
       {/* Map Canvas - Full Height */}
-      <div className="flex-1 relative">
+      <div className=" relative">
         <canvas
           ref={canvasRef}
           width={canvasWidth}
@@ -771,9 +793,14 @@ export function TreasureMap({
             }
           }}
           onTouchEnd={() => handleMouseUp()}
-                      className={`w-full h-full ${
-             selectedMainSquare ? (userCurrentSelection.length + usersSubmitted.length < TOTAL_POINTS ? "cursor-crosshair" : "cursor-not-allowed") : "cursor-pointer"
-            } ${isDragging ? "cursor-grabbing" : ""}`}
+          className={`w-full h-full ${
+            selectedMainSquare
+              ? userCurrentSelection.length + usersSubmitted.length <
+                TOTAL_POINTS
+                ? "cursor-crosshair"
+                : "cursor-not-allowed"
+              : "cursor-pointer"
+          } ${isDragging ? "cursor-grabbing" : ""}`}
           style={{
             objectFit: "contain",
           }}
