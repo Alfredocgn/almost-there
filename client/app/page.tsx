@@ -20,7 +20,6 @@ export default function TreasureHuntGame() {
         onPlay={() => router.push("/lobby")}
         onShowInstructions={() => console.log("show instructions")}
       />
-
     </div>
   );
 }

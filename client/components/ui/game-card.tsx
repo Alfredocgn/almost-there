@@ -92,7 +92,7 @@ export function GameCard({
         <Button
           onClick={onJoin}
           disabled={disabled || isGameFull}
-          className="w-full bg-[#ffe460] hover:bg-[#ffd700] text-black border-2 border-black"
+          className="w-full bg-[#ffe460] cursor-pointer hover:bg-[#ffd700] text-black border-2 border-black"
           size="lg"
         >
           {isGameFull ? "Game Full" : "Join Game"}
