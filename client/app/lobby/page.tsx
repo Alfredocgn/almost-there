@@ -55,5 +55,5 @@ export default function LobbyPage() {
     router.push(`/game/${gameId}`);
   };
 
-  return <GameLobby games={games} onJoinGame={handleJoinGame} />;
+  return <GameLobby games={games} onJoinGame={() => handleJoinGame("123")} />;
 }
