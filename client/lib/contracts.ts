@@ -18,7 +18,12 @@ export const ALMOST_THERE_ABI = parseAbi([
   'function getContractBalance() view returns (uint256)',
   'function getPod(uint256 _gameId) view returns (uint256 pot)',
   'function getUserInfo(uint256 _gameId,address _user) view returns (uint256 guessCount,(uint256 x,uint256 y)[] coordinates)',
-  'function getMapInfoCost(uint256 _gameId) view returns (uint256 cost)'
+  'function getMapInfoCost(uint256 _gameId) view returns (uint256 cost)',
+  // writes
+  'function buyGuesses(uint256 _gameId,uint256 _guessCount) payable',
+  'function submitGuesses(uint256 _gameId,(uint256 x,uint256 y)[] _guesses)',
+  'function finalizeGame(uint256 _gameId)',
+  'function mapInfo(uint256 _gameId) payable returns (address[] players,(uint256 x,uint256 y)[][] playerCoordinates,uint256[] playerGuessesCount)'
 ])
 
 export type Guess = { x: bigint; y: bigint }
