@@ -90,12 +90,6 @@ export default function TreasureHuntGame() {
     }
   };
 
-  const availablePoints =
-    maxPointsPerGame - usersSubmitted.length - userCurrentSelection.length;
-  const cartSize = userCurrentSelection.length;
-  const totalFlags = usersSubmitted.length;
-  const cartTotal = cartSize * pointCost;
-
   return (
     <div className="min-h-screen bg-gradient-to-br from-amber-50 via-orange-50 to-red-50">
       <LandingCard
