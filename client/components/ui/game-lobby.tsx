@@ -1,90 +1,56 @@
 import type React from "react";
-import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
-import { Users, Zap, MapPin } from "lucide-react";
 import { GameCard } from "./game-card";
 
-interface GameLobbyProps {
-  onJoinGame: () => void;
-  gameData?: {
-    playersNeeded: number;
-    currentPlayers: number;
-    playerTurns: number;
-    prizePool: string;
-  };
-  title?: string;
-  subtitle?: string;
+interface Game {
+  id: string;
+  name: string;
+  location: string;
+  country: string;
+  status: string;
+  currentPlayers: number;
+  playersNeeded: number;
+  prizePool: string;
+  finishesIn: string;
+  imageUrl: string;
 }
 
-export function GameLobby({
-  onJoinGame,
-  gameData = {
-    playersNeeded: 6,
-    currentPlayers: 3,
-    playerTurns: 5,
-    prizePool: "0.5 ETH",
-  },
-  title = "Colegiales Treasure Hunt",
-  subtitle = "Join the multiplayer adventure",
-}: GameLobbyProps) {
-  const isGameFull = gameData.currentPlayers >= gameData.playersNeeded;
+interface GameLobbyProps {
+  games: Game[];
+  onJoinGame: (gameId: string) => void;
+}
 
+export function GameLobby({ games, onJoinGame }: GameLobbyProps) {
   return (
     <div className="px-4 py-4">
-      <div className=" max-w-sm mx-auto">
-        <Card className="bg-[#d9f3ff] ">
+      <div className="max-w-sm mx-auto">
+        <Card className="bg-[#d9f3ff]">
           <CardHeader
-            className=" h-16 p-0 m-0"
+            className="h-16 p-0 m-0"
             style={{
               backgroundImage: "url('/lobby-header.png')",
               backgroundSize: "cover",
               backgroundPosition: "center",
             }}
           ></CardHeader>
-          <CardTitle className="flex items-center justify-center ">
-            <span
-              style={{ backgroundColor: "#3cbaf7" }}
-              className="text-lg text-white font-semibold px-4 py-2 rounded-xl"
-            >
-              Game Lobby
-            </span>
-          </CardTitle>
-          <CardContent className="space-y-4">
-            <GameCard
-              imageUrl="/mini-colegiales.jpeg"
-              location="Colegiales"
-              country="Buenos Aires, Argentina"
-              players={{
-                current: gameData.currentPlayers,
-                max: gameData.playersNeeded,
-              }}
-              prizePool={gameData.prizePool}
-              finishesIn="2h 30m"
-              onJoin={onJoinGame}
-            />
-          </CardContent>
-          <CardTitle className="flex items-center justify-center ">
-            <span
-              style={{ backgroundColor: "#3cbaf7" }}
-              className="text-lg text-white font-semibold px-4 py-2 rounded-xl"
-            >
-              Previous Games
-            </span>
-          </CardTitle>
-          <CardContent className="space-y-4">
-            <GameCard
-              imageUrl="/mini-colegiales.jpeg"
-              location="Palermo"
-              country="Buenos Aires, Argentina"
-              players={{
-                current: gameData.currentPlayers,
-                max: gameData.playersNeeded,
-              }}
-              prizePool={gameData.prizePool}
-              finishesIn="2h 30m"
-              onJoin={onJoinGame}
-            />
+
+          <CardContent className="space-y-4 pt-4">
+            {games.map((game) => (
+              <GameCard
+                key={game.id}
+                imageUrl={game.imageUrl}
+                location={game.location}
+                country={game.country}
+                players={{
+                  current: game.currentPlayers,
+                  max: game.playersNeeded,
+                }}
+                prizePool={game.prizePool}
+                finishesIn={game.finishesIn}
+                onJoin={() => onJoinGame(game.id)}
+                disabled={game.status === "Finished"}
+              />
+            ))}
           </CardContent>
         </Card>
       </div>
