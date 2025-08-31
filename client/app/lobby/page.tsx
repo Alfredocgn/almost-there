@@ -1,9 +1,4 @@
 "use client";
-
-import Link from "next/link";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import { MapPin, Router } from "lucide-react";
 import { GameLobby } from "@/components/ui/game-lobby";
 import { useState } from "react";
 import { useRouter } from "next/navigation";
