@@ -1,40 +1,54 @@
 "use client";
-
-import Link from "next/link";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import { MapPin } from "lucide-react";
+import { GameLobby } from "@/components/ui/game-lobby";
+import { useState } from "react";
+import { useRouter } from "next/navigation";
 
 export default function LobbyPage() {
+  const router = useRouter();
   const games = [
-    { id: "123", name: "Buenos Aires Hunt", status: "Active", players: 3, needed: 6 },
-    { id: "122", name: "Recoleta Run", status: "Finished", players: 6, needed: 6 },
+    {
+      id: "123",
+      name: "Colegiales Hunt",
+      location: "Colegiales",
+      country: "Buenos Aires, Argentina",
+      status: "Active",
+      currentPlayers: 3,
+      playersNeeded: 6,
+      prizePool: "0.5 ETH",
+      finishesIn: "2h 30m",
+      imageUrl: "/mini-colegiales.jpeg",
+    },
+    {
+      id: "124",
+      name: "Recoleta Run",
+      location: "Recoleta",
+      country: "Buenos Aires, Argentina",
+      status: "Active",
+      currentPlayers: 2,
+      playersNeeded: 6,
+      prizePool: "0.3 ETH",
+      finishesIn: "1h 45m",
+      imageUrl: "/mini-recoleta.jpeg",
+    },
+    {
+      id: "125",
+      name: "Palermo Adventure",
+      location: "Palermo",
+      country: "Buenos Aires, Argentina",
+      status: "Starting Soon",
+      currentPlayers: 1,
+      playersNeeded: 6,
+      prizePool: "0.7 ETH",
+      finishesIn: "45m",
+      imageUrl: "/mini-palermo.jpeg",
+    },
   ];
 
-  return (
-    <div className="min-h-screen bg-gradient-to-br from-amber-50 via-orange-50 to-red-50 px-4 py-6">
-      <div className="max-w-sm mx-auto space-y-4">
-        {games.map((g) => (
-          <Card key={g.id}>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2 text-lg">
-                <span className="inline-flex w-6 h-6 items-center justify-center rounded-md bg-amber-600 text-white">
-                  <MapPin className="w-4 h-4" />
-                </span>
-                {g.name}
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="flex items-center justify-between">
-              <span className="text-sm text-muted-foreground">{g.players}/{g.needed} Players</span>
-              <Link href={`/game/${g.id}`}>
-                <Button size="sm" className="h-8">{g.status === "Active" ? "Play" : "View"}</Button>
-              </Link>
-            </CardContent>
-          </Card>
-        ))}
-      </div>
-    </div>
-  );
+  const [gameState, setGameState] = useState<"lobby" | "playing">("lobby");
+
+  const handleJoinGame = (gameId: string) => {
+    router.push(`/game/${gameId}`);
+  };
+
+  return <GameLobby games={games} onJoinGame={() => handleJoinGame("123")} />;
 }
-
-
