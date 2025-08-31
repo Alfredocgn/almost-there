@@ -14,6 +14,7 @@ import { Badge } from "@/components/ui/badge";
 import { Wallet, Users, Zap, ArrowLeft, Eye, MapPin } from "lucide-react";
 import { TreasureMap } from "@/components/treasure-map";
 import { LandingCard } from "@/components/ui/landing-card";
+import { GameLobby } from "@/components/ui/game-lobby";
 
 const mockGameData = {
   playersNeeded: 6,
@@ -197,71 +198,12 @@ export default function TreasureHuntGame() {
           </div>
         </div>
       ) : (
-        <div className="px-4 py-6">
-          <div className="text-center mb-6">
-            <div className="w-16 h-16 bg-gradient-to-br from-amber-600 to-orange-600 rounded-xl flex items-center justify-center mx-auto mb-4">
-              <MapPin className="w-8 h-8 text-white" />
-            </div>
-            <h2 className="text-2xl font-bold text-amber-900 mb-2">
-              Colegiales Treasure Hunt
-            </h2>
-            <p className="text-amber-700 text-sm">
-              Join the multiplayer adventure
-            </p>
-          </div>
-
-          <div className="space-y-4 max-w-sm mx-auto">
-            <Card>
-              <CardHeader className="pb-3">
-                <CardTitle className="flex items-center gap-2 text-lg">
-                  <Users className="w-5 h-5" />
-                  Game Lobby
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                <div className="flex items-center justify-between">
-                  <span className="text-sm text-muted-foreground">Players</span>
-                  <Badge variant="secondary">
-                    {mockGameData.currentPlayers}/{mockGameData.playersNeeded}
-                  </Badge>
-                </div>
-
-                <div className="flex items-center justify-between">
-                  <span className="text-sm text-muted-foreground">
-                    Starts in
-                  </span>
-                  <Badge variant="outline" className="font-mono">
-                    {mockGameData.currentPlayers}/{mockGameData.playersNeeded}{" "}
-                    Players
-                  </Badge>
-                </div>
-
-                <div className="flex items-center justify-between">
-                  <span className="text-sm text-muted-foreground">
-                    Prize Pool
-                  </span>
-                  <Badge variant="secondary" className="text-accent">
-                    <Zap className="w-4 h-4 mr-1" />
-                    {mockGameData.prizePool}
-                  </Badge>
-                </div>
-
-                <Button
-                  className="w-full"
-                  size="lg"
-                  onClick={handleJoinGame}
-                  disabled={
-                    mockGameData.currentPlayers >= mockGameData.playersNeeded
-                  }
-                >
-                  {mockGameData.currentPlayers >= mockGameData.playersNeeded
-                    ? "Game Full"
-                    : "Join Game"}
-                </Button>
-              </CardContent>
-            </Card>
-          </div>
-        </div>
+        <GameLobby
+          onJoinGame={handleJoinGame}
+          gameData={mockGameData}
+          title="Colegiales Treasure Hunt"
+          subtitle="Join the multiplayer adventure"
+        />
       )}
     </div>
   );
